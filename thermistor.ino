@@ -11,24 +11,28 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <Arduino_JSON.h>
+#include <PID_v1.h>
 
 #define SSID "PNET"
 #define PASSWORD "5626278472"
 
-// the value of the 'other' resistor
 #define SERIES_RESISTOR 47000
 #define VOLTAGE_DIVIDE 152988000 // (3.3 / SERIESRESISTOR) * 1000   
-#define ADC_SAMPLE_SIZE 10
+#define ADC_SAMPLE_SIZE 100
 
-// What pin to connect the sensor to
-#define THERMISTOR1_PIN 34
-//#define THERMISTOR2_PIN 34
+#define TEMPERATURE_PIN 34
+#define THERMISTOR1_PIN 35
+#define THERMISTOR2_PIN 35
+#define THERMISTOR3_PIN 35
+#define THERMISTOR4_PIN 35
 #define HEAT_PIN 5
 
-#define A 0.5256707269e-3
-#define B 2.549879363e-4       
-#define C  0.4157461131e-7
 #define THERMISTOR 100000
+#define A 0.5256707269e-3
+#define B 2.549879363e-4
+#define C 0.4157461131e-7
+
+#define PID_WINDOW_SIZE 30000
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -37,88 +41,119 @@ uint16_t adc1_buffer[ADC_SAMPLE_SIZE] = {0};
 uint8_t adc1_index = 0;
 uint16_t adc2_buffer[ADC_SAMPLE_SIZE] = {0};
 uint8_t adc2_index = 0;
+uint16_t adc3_buffer[ADC_SAMPLE_SIZE] = {0};
+uint8_t adc3_index = 0;
+uint16_t adc4_buffer[ADC_SAMPLE_SIZE] = {0};
+uint8_t adc4_index = 0;
 
 //main loop variables
 uint16_t reading;
 uint32_t voltage;
 uint32_t resistance;
 
-//current state 
-float temperature;
-float probe1;
-float probe2;
-bool heatOn = false;
-int targetTemp = 0;
+//current state
+double temperature;
+double probe1;
+double probe2;
+double probe3;
+double probe4;
+double targetTemp = 0;
 
 
-//wifi 
+//wifi
 long wifiConnecting;
 long wsTempLogLastLog;
 
+//Define Variables we'll be connecting to
+double timeOn;
+
+//Specify the links and initial tuning parameters
+double Kp = 2, Ki = 5, Kd = 1;
+PID heatControlPid(&temperature, &timeOn, &targetTemp, Kp, Ki, Kd, DIRECT);
+
+unsigned long windowStartTime;
+
+long now;
+
 void setup(void) {
   Serial.begin(9600);
+
+  windowStartTime = millis();
+
+  heatControlPid.SetOutputLimits(0, PID_WINDOW_SIZE);
+  heatControlPid.SetMode(AUTOMATIC);
 
   init_WiFi();
 
   initWebSocket();
 
-  // Start server
   server.begin();
-  
-  pinMode(HEAT_PIN,OUTPUT);
-  pinMode(THERMISTOR1_PIN,INPUT);
 
-
+  pinMode(HEAT_PIN, OUTPUT);
+  pinMode(THERMISTOR1_PIN, INPUT);
 }
 
 void loop(void) {
+  now = millis();
+
+  temperature = readTemperature(TEMPERATURE_PIN);
+  probe1 = readTemperature(THERMISTOR1_PIN);
+  probe2 = readTemperature(THERMISTOR2_PIN);
+  probe3 = readTemperature(THERMISTOR3_PIN);
+  probe4 = readTemperature(THERMISTOR4_PIN);
   
-  reading = analogRead(THERMISTOR1_PIN);
-  voltage = readADC_Cal(reading);
-//  resistance = (VOLTAGE_DIVIDE / voltage) - SERIES_RESISTOR;
-//  temperature = calculate_Tempature_SH_Value(resistance);
-//  Serial.print((temperature) * 1.8 + 32, 2);
-//  Serial.print(",");
-  
-  voltage = readADC_Avg(voltage, adc1_buffer, &adc1_index);
-  resistance = (VOLTAGE_DIVIDE / voltage) - SERIES_RESISTOR;
-  temperature = calculate_Tempature_SH_Value(resistance);
-  Serial.print("Temperature ");
-  Serial.print((temperature) * 1.8 + 32, 2);
-  Serial.println("f");
-  
-  if (temperature > targetTemp && heatOn) {
-    digitalWrite(HEAT_PIN, LOW);
-    heatOn = false;
-   } else if (temperature < targetTemp-5 && !heatOn) {
+  heatControlPid.Compute();
+
+  //recalcuate every PID_WINDOW_SIZE
+  if (now - windowStartTime > PID_WINDOW_SIZE)
+    windowStartTime = now;
+
+  if (timeOn > now - windowStartTime)
     digitalWrite(HEAT_PIN, HIGH);
-    heatOn = true;
-  }
-  Serial.print("Heat ");
-  Serial.println(heatOn?"on":"off");
+  else
+    digitalWrite(HEAT_PIN, LOW);
 
-  Serial.print("Target Temperature ");
-  Serial.print(targetTemp * 1.8 + 32, 2);
-  Serial.println("f");
-
-  if (millis() - wsTempLogLastLog > 5000) {
-    wsTempLogLastLog = millis();
+  if (now - wsTempLogLastLog > 5000) {
+    wsTempLogLastLog = now;
 
     //Json Variable to Hold Slider Values
     JSONVar tempData;
-    tempData["temperature"] = String(temperature * 1.8 + 32);
-    tempData["target"] = String(targetTemp * 1.8 + 32);
-    tempData["heat"] = String(heatOn?"1":"0");
-    tempData["probe1"] = String("0");
-    tempData["probe2"] = String("0");
-    tempData["probe3"] = String("0");
-    tempData["probe4"] = String("0");
+    tempData["temperature"] = toLocalTemperature(temperature);
+    tempData["target"] = toLocalTemperature(targetTemp);
+    tempData["heat"] = digitalRead(HEAT_PIN);
+    tempData["probe1"] = toLocalTemperature(probe1);
+    tempData["probe2"] = toLocalTemperature(probe2);
+    tempData["probe3"] = toLocalTemperature(probe3);
+    tempData["probe4"] = toLocalTemperature(probe4);
 
     String jsonString = JSON.stringify(tempData);
     notifyClients(jsonString);
+
+    Serial.print("Time on ");
+    Serial.println(timeOn);
+
+    Serial.print("Window ");
+    Serial.println(PID_WINDOW_SIZE - (now - windowStartTime));
+
   }
-  delay(1000);
 }
+
+double readTemperature(int pin) {
+  reading = analogRead(pin);
+  voltage = readADC_Cal(reading);
+  voltage = readADC_Avg(voltage, adc1_buffer, &adc1_index);
+  resistance = (VOLTAGE_DIVIDE / voltage) - SERIES_RESISTOR;
+  return calculate_Tempature_SH_Value(resistance);
+}
+
+double toLocalTemperature(double value) {
+  return value * 1.8 + 32;
+}
+
+double fromLocalTemperature(double value) {
+  return (value - 32) / 1.8;
+}
+
 
 float calculate_Tempature_B_Value(uint32_t res) {
   //B value calculation
@@ -134,7 +169,7 @@ float calculate_Tempature_B_Value(uint32_t res) {
 
 float calculate_Tempature_SH_Value(uint32_t res) {
   float logRes = log(res);           // Pre-Calcul for Log(R2)
-  float temp = (1.0 / (A + B*logRes + C*logRes*logRes*logRes)); 
+  float temp = (1.0 / (A + B * logRes + C * logRes * logRes * logRes));
   return  temp - 273.15;             // convert Kelvin to *C
 }
 
@@ -178,7 +213,7 @@ void init_WiFi() {
     Serial.print(".");
     delay(1000);
   }
-  Serial.println(WiFi.localIP()); 
+  Serial.println(WiFi.localIP());
 }
 
 void notifyClients(String sliderValues) {
@@ -192,7 +227,10 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     String message = (char*)data;
     Serial.println(message);
     if (message.indexOf("setTemp") >= 0) {
-      targetTemp = (message.substring(8).toInt()- 32) / 1.8;
+      targetTemp = fromLocalTemperature(message.substring(8).toInt());
+    }
+    if (message.indexOf("setDebugTemp") >= 0) {
+      temperature = fromLocalTemperature(message.substring(13).toInt());
     }
   }
 }
