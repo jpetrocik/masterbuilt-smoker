@@ -7,6 +7,13 @@
 // MIT License - please keep attribution and consider buying parts from Adafruit
 
 #include "esp_adc_cal.h"
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <Arduino_JSON.h>
+
+#define SSID "PNET"
+#define PASSWORD "5626278472"
 
 // the value of the 'other' resistor
 #define SERIES_RESISTOR 47000
@@ -23,63 +30,92 @@
 #define C  0.4157461131e-7
 #define THERMISTOR 100000
 
-#define TEMP_HIGH_LIMIT 76
-#define TEMP_LOW_LIMIT 74
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
 
 uint16_t adc1_buffer[ADC_SAMPLE_SIZE] = {0};
 uint8_t adc1_index = 0;
 uint16_t adc2_buffer[ADC_SAMPLE_SIZE] = {0};
 uint8_t adc2_index = 0;
 
-
+//main loop variables
 uint16_t reading;
 uint32_t voltage;
 uint32_t resistance;
-float temperature1;
-float temperature2;
-float steinhart_constant; 
+
+//current state 
+float temperature;
+float probe1;
+float probe2;
 bool heatOn = false;
+int targetTemp = 0;
+
+
+//wifi 
+long wifiConnecting;
+long wsTempLogLastLog;
 
 void setup(void) {
   Serial.begin(9600);
 
-  steinhart_constant = A + B*log(THERMISTOR);
+  init_WiFi();
+
+  initWebSocket();
+
+  // Start server
+  server.begin();
   
   pinMode(HEAT_PIN,OUTPUT);
   pinMode(THERMISTOR1_PIN,INPUT);
-//  pinMode(THERMISTOR2_PIN,INPUT);
 
-//  digitalWrite(HEAT_PIN, HIGH);
 
 }
 
 void loop(void) {
-
+  
   reading = analogRead(THERMISTOR1_PIN);
   voltage = readADC_Cal(reading);
-  resistance = (VOLTAGE_DIVIDE / voltage) - SERIES_RESISTOR;
-  temperature1 = calculate_Tempature_SH_Value(resistance);
-  Serial.print((temperature1) * 1.8 + 32, 2);
-  Serial.print(",");
+//  resistance = (VOLTAGE_DIVIDE / voltage) - SERIES_RESISTOR;
+//  temperature = calculate_Tempature_SH_Value(resistance);
+//  Serial.print((temperature) * 1.8 + 32, 2);
+//  Serial.print(",");
   
   voltage = readADC_Avg(voltage, adc1_buffer, &adc1_index);
   resistance = (VOLTAGE_DIVIDE / voltage) - SERIES_RESISTOR;
-  temperature1 = calculate_Tempature_SH_Value(resistance);
-  Serial.print((temperature1) * 1.8 + 32, 2);
-  Serial.print(",");
-
-  if (temperature1 > TEMP_HIGH_LIMIT && heatOn) {
-    Serial.println(",0");
+  temperature = calculate_Tempature_SH_Value(resistance);
+  Serial.print("Temperature ");
+  Serial.print((temperature) * 1.8 + 32, 2);
+  Serial.println("f");
+  
+  if (temperature > targetTemp && heatOn) {
     digitalWrite(HEAT_PIN, LOW);
     heatOn = false;
-   } else if (temperature1 < TEMP_LOW_LIMIT && !heatOn) {
-    Serial.println(",1");
+   } else if (temperature < targetTemp-5 && !heatOn) {
     digitalWrite(HEAT_PIN, HIGH);
     heatOn = true;
-  } else if (heatOn) {
-    Serial.println(",1");
-  } else {
-    Serial.println(",0");
+  }
+  Serial.print("Heat ");
+  Serial.println(heatOn?"on":"off");
+
+  Serial.print("Target Temperature ");
+  Serial.print(targetTemp * 1.8 + 32, 2);
+  Serial.println("f");
+
+  if (millis() - wsTempLogLastLog > 5000) {
+    wsTempLogLastLog = millis();
+
+    //Json Variable to Hold Slider Values
+    JSONVar tempData;
+    tempData["temperature"] = String(temperature * 1.8 + 32);
+    tempData["target"] = String(targetTemp * 1.8 + 32);
+    tempData["heat"] = String(heatOn?"1":"0");
+    tempData["probe1"] = String("0");
+    tempData["probe2"] = String("0");
+    tempData["probe3"] = String("0");
+    tempData["probe4"] = String("0");
+
+    String jsonString = JSON.stringify(tempData);
+    notifyClients(jsonString);
   }
   delay(1000);
 }
@@ -129,4 +165,56 @@ uint32_t readADC_Avg(uint16_t sample, uint16_t adc_buffer[], uint8_t* adc_index_
   *adc_index_ptr = adc_index;
 
   return sum / ADC_SAMPLE_SIZE;
+}
+
+void init_WiFi() {
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASSWORD);
+  Serial.print("Attempting to connect to ");
+  Serial.print(SSID);
+  Serial.print(".");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println(WiFi.localIP()); 
+}
+
+void notifyClients(String sliderValues) {
+  ws.textAll(sliderValues);
+}
+
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
+  AwsFrameInfo *info = (AwsFrameInfo*)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+    data[len] = 0;
+    String message = (char*)data;
+    Serial.println(message);
+    if (message.indexOf("setTemp") >= 0) {
+      targetTemp = (message.substring(8).toInt()- 32) / 1.8;
+    }
+  }
+}
+
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  switch (type) {
+    case WS_EVT_CONNECT:
+      Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+      break;
+    case WS_EVT_DISCONNECT:
+      Serial.printf("WebSocket client #%u disconnected\n", client->id());
+      break;
+    case WS_EVT_DATA:
+      handleWebSocketMessage(arg, data, len);
+      break;
+    case WS_EVT_PONG:
+    case WS_EVT_ERROR:
+      break;
+  }
+}
+
+void initWebSocket() {
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
 }
