@@ -22,9 +22,9 @@
 
 #define TEMPERATURE_PIN 34
 #define THERMISTOR1_PIN 35
-#define THERMISTOR2_PIN 35
-#define THERMISTOR3_PIN 35
-#define THERMISTOR4_PIN 35
+#define THERMISTOR2_PIN 32
+#define THERMISTOR3_PIN 33
+#define THERMISTOR4_PIN 39
 #define HEAT_PIN 5
 
 #define THERMISTOR 100000
@@ -57,7 +57,7 @@ double probe1;
 double probe2;
 double probe3;
 double probe4;
-double targetTemp = 0;
+double targetTemperature = 0;
 
 
 //wifi
@@ -68,8 +68,9 @@ long wsTempLogLastLog;
 double timeOn;
 
 //Specify the links and initial tuning parameters
-double Kp = 2, Ki = 5, Kd = 1;
-PID heatControlPid(&temperature, &timeOn, &targetTemp, Kp, Ki, Kd, DIRECT);
+bool manualWarming = true;
+double Kp = 1, Ki = 0, Kd = 50;
+PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT);
 
 unsigned long windowStartTime;
 
@@ -81,7 +82,7 @@ void setup(void) {
   windowStartTime = millis();
 
   heatControlPid.SetOutputLimits(0, PID_WINDOW_SIZE);
-  heatControlPid.SetMode(AUTOMATIC);
+  heatControlPid.SetMode(MANUAL);
 
   init_WiFi();
 
@@ -95,36 +96,47 @@ void setup(void) {
 
 void loop(void) {
   now = millis();
-
-  temperature = readTemperature(TEMPERATURE_PIN);
-  probe1 = readTemperature(THERMISTOR1_PIN);
-  probe2 = readTemperature(THERMISTOR2_PIN);
-  probe3 = readTemperature(THERMISTOR3_PIN);
-  probe4 = readTemperature(THERMISTOR4_PIN);
   
-  heatControlPid.Compute();
+  temperature = readTemperature(TEMPERATURE_PIN);  //need to pass buffer array
 
-  //recalcuate every PID_WINDOW_SIZE
-  if (now - windowStartTime > PID_WINDOW_SIZE)
-    windowStartTime = now;
+//  probe1 = readTemperature(THERMISTOR1_PIN);
+//  probe2 = readTemperature(THERMISTOR2_PIN);
+//  probe3 = readTemperature(THERMISTOR3_PIN);
+//  probe4 = readTemperature(THERMISTOR4_PIN);
+  
 
-  if (timeOn > now - windowStartTime)
-    digitalWrite(HEAT_PIN, HIGH);
-  else
+  if (targetTemperature < 38)
+  {
     digitalWrite(HEAT_PIN, LOW);
-
+    timeOn = 0;
+  }
+  else if (manualWarming) 
+  {
+    if (targetTemperature - temperature <  16) {
+      manualWarming = false;
+      heatControlPid.SetMode(AUTOMATIC);
+    } else {
+      digitalWrite(HEAT_PIN, HIGH);
+      timeOn = PID_WINDOW_SIZE;
+    }
+  }
+  else 
+  {
+    computePID();
+  }
+  
   if (now - wsTempLogLastLog > 5000) {
     wsTempLogLastLog = now;
 
-    //Json Variable to Hold Slider Values
     JSONVar tempData;
-    tempData["temperature"] = toLocalTemperature(temperature);
-    tempData["target"] = toLocalTemperature(targetTemp);
+    tempData["temperature"] = (int)toLocalTemperature(temperature);
+    tempData["target"] = (int)toLocalTemperature(targetTemperature);
     tempData["heat"] = digitalRead(HEAT_PIN);
-    tempData["probe1"] = toLocalTemperature(probe1);
-    tempData["probe2"] = toLocalTemperature(probe2);
-    tempData["probe3"] = toLocalTemperature(probe3);
-    tempData["probe4"] = toLocalTemperature(probe4);
+    tempData["probe1"] = (int)toLocalTemperature(probe1);
+    tempData["probe2"] = (int)toLocalTemperature(probe2);
+    tempData["probe3"] = (int)toLocalTemperature(probe3);
+    tempData["probe4"] = (int)toLocalTemperature(probe4);
+    tempData["dutyCycle"] = ((int)(timeOn*100/PID_WINDOW_SIZE))/100.0;
 
     String jsonString = JSON.stringify(tempData);
     notifyClients(jsonString);
@@ -138,6 +150,22 @@ void loop(void) {
   }
 }
 
+void computePID() {
+  heatControlPid.Compute();
+
+  if (timeOn < 5)
+    timeOn = 0;
+    
+  //recalcuate next PID window
+  if (now - windowStartTime > PID_WINDOW_SIZE)
+    windowStartTime = now;
+
+  if (timeOn > now - windowStartTime)
+    digitalWrite(HEAT_PIN, HIGH);
+  else
+    digitalWrite(HEAT_PIN, LOW);
+
+}
 double readTemperature(int pin) {
   reading = analogRead(pin);
   voltage = readADC_Cal(reading);
@@ -225,12 +253,27 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     data[len] = 0;
     String message = (char*)data;
+    Serial.print("Recieved: ");
     Serial.println(message);
     if (message.indexOf("setTemp") >= 0) {
-      targetTemp = fromLocalTemperature(message.substring(8).toInt());
+      targetTemperature = fromLocalTemperature(message.substring(8).toInt());
+      heatControlPid.SetMode(MANUAL);
+      manualWarming = true;
     }
     if (message.indexOf("setDebugTemp") >= 0) {
       temperature = fromLocalTemperature(message.substring(13).toInt());
+    }
+    if (message.indexOf("setKp") >= 0) {
+      Kp = message.substring(6).toDouble();
+      heatControlPid.SetTunings(Kp,Kd,Ki);
+    }
+    if (message.indexOf("setKd") >= 0) {
+      Kd = message.substring(6).toDouble();
+      heatControlPid.SetTunings(Kp,Kd,Ki);
+    }
+    if (message.indexOf("setKi") >= 0) {
+      Ki = message.substring(6).toDouble();
+      heatControlPid.SetTunings(Kp,Kd,Ki);
     }
   }
 }
@@ -238,10 +281,8 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type) {
     case WS_EVT_CONNECT:
-      Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       break;
     case WS_EVT_DISCONNECT:
-      Serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
     case WS_EVT_DATA:
       handleWebSocketMessage(arg, data, len);
