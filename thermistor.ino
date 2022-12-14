@@ -18,7 +18,7 @@
 
 #define SERIES_RESISTOR 47000
 #define VOLTAGE_DIVIDE 152988000 // (3.3 / SERIESRESISTOR) * 1000   
-#define ADC_SAMPLE_SIZE 100
+#define ADC_SAMPLE_SIZE 20
 
 #define TEMPERATURE_PIN 34
 #define THERMISTOR1_PIN 35
@@ -32,7 +32,7 @@
 #define B 2.549879363e-4
 #define C 0.4157461131e-7
 
-#define PID_WINDOW_SIZE 30000
+#define PID_WINDOW_SIZE 2000
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -58,26 +58,26 @@ double probe2;
 double probe3;
 double probe4;
 double targetTemperature = 0;
-
+long lastRead;
 
 //wifi
 long wifiConnecting;
-long wsTempLogLastLog;
+long wsLastDataLog;
 
 //Define Variables we'll be connecting to
 double timeOn;
 
 //Specify the links and initial tuning parameters
-bool manualWarming = true;
-double Kp = 1, Ki = 0, Kd = 50;
+double Kp = 150, Ki = 0, Kd = 50;
 PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT);
+bool abortError = false;
 
 unsigned long windowStartTime;
 
 long now;
 
 void setup(void) {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   windowStartTime = millis();
 
@@ -95,9 +95,26 @@ void setup(void) {
 }
 
 void loop(void) {
+  if (abortError) {
+    digitalWrite(HEAT_PIN, LOW);
+    return;
+  }
+
   now = millis();
+
+  if (now - lastRead > 1000) 
+  {
+    temperature = readTemperature(TEMPERATURE_PIN);  //need to pass buffer array
+    Serial.print("Temperature ");
+    Serial.println(toLocalTemperature(temperature));
+
+    lastRead = now;
+  }
   
-  temperature = readTemperature(TEMPERATURE_PIN);  //need to pass buffer array
+  if (temperature > 120) { //high temp safety
+    abortError = true;
+    return;
+  }
 
 //  probe1 = readTemperature(THERMISTOR1_PIN);
 //  probe2 = readTemperature(THERMISTOR2_PIN);
@@ -110,23 +127,13 @@ void loop(void) {
     digitalWrite(HEAT_PIN, LOW);
     timeOn = 0;
   }
-  else if (manualWarming) 
-  {
-    if (targetTemperature - temperature <  16) {
-      manualWarming = false;
-      heatControlPid.SetMode(AUTOMATIC);
-    } else {
-      digitalWrite(HEAT_PIN, HIGH);
-      timeOn = PID_WINDOW_SIZE;
-    }
-  }
   else 
   {
     computePID();
   }
   
-  if (now - wsTempLogLastLog > 5000) {
-    wsTempLogLastLog = now;
+  if (now - wsLastDataLog > 5000) {
+    wsLastDataLog = now;
 
     JSONVar tempData;
     tempData["temperature"] = (int)toLocalTemperature(temperature);
@@ -136,7 +143,7 @@ void loop(void) {
     tempData["probe2"] = (int)toLocalTemperature(probe2);
     tempData["probe3"] = (int)toLocalTemperature(probe3);
     tempData["probe4"] = (int)toLocalTemperature(probe4);
-    tempData["dutyCycle"] = ((int)(timeOn*100/PID_WINDOW_SIZE))/100.0;
+    tempData["dutyCycle"] = timeOn/(double)PID_WINDOW_SIZE;
 
     String jsonString = JSON.stringify(tempData);
     notifyClients(jsonString);
@@ -153,7 +160,7 @@ void loop(void) {
 void computePID() {
   heatControlPid.Compute();
 
-  if (timeOn < 5)
+  if (timeOn < 100)
     timeOn = 0;
     
   //recalcuate next PID window
@@ -257,8 +264,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     Serial.println(message);
     if (message.indexOf("setTemp") >= 0) {
       targetTemperature = fromLocalTemperature(message.substring(8).toInt());
-      heatControlPid.SetMode(MANUAL);
-      manualWarming = true;
+      heatControlPid.SetMode(AUTOMATIC);
     }
     if (message.indexOf("setDebugTemp") >= 0) {
       temperature = fromLocalTemperature(message.substring(13).toInt());
