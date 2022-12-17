@@ -59,6 +59,7 @@ double probe3;
 double probe4;
 double targetTemperature = 0;
 long lastRead;
+long cookEndTime = 0;
 
 //wifi
 long wifiConnecting;
@@ -122,7 +123,7 @@ void loop(void) {
 //  probe4 = readTemperature(THERMISTOR4_PIN);
   
 
-  if (targetTemperature < 38)
+  if (targetTemperature < 38 || cookEndTime < now)
   {
     digitalWrite(HEAT_PIN, LOW);
     timeOn = 0;
@@ -138,7 +139,7 @@ void loop(void) {
     JSONVar tempData;
     tempData["temperature"] = (int)toLocalTemperature(temperature);
     tempData["target"] = (int)toLocalTemperature(targetTemperature);
-    tempData["heat"] = digitalRead(HEAT_PIN);
+    tempData["cookTime"] = (cookEndTime - now)/60000;
     tempData["probe1"] = (int)toLocalTemperature(probe1);
     tempData["probe2"] = (int)toLocalTemperature(probe2);
     tempData["probe3"] = (int)toLocalTemperature(probe3);
@@ -173,6 +174,7 @@ void computePID() {
     digitalWrite(HEAT_PIN, LOW);
 
 }
+
 double readTemperature(int pin) {
   reading = analogRead(pin);
   voltage = readADC_Cal(reading);
@@ -188,7 +190,6 @@ double toLocalTemperature(double value) {
 double fromLocalTemperature(double value) {
   return (value - 32) / 1.8;
 }
-
 
 float calculate_Tempature_B_Value(uint32_t res) {
   //B value calculation
@@ -262,24 +263,27 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     String message = (char*)data;
     Serial.print("Recieved: ");
     Serial.println(message);
-    if (message.indexOf("setTemp") >= 0) {
+    if (message.indexOf("setTemp=") >= 0) {
       targetTemperature = fromLocalTemperature(message.substring(8).toInt());
       heatControlPid.SetMode(AUTOMATIC);
     }
-    if (message.indexOf("setDebugTemp") >= 0) {
+    if (message.indexOf("setDebugTemp=") >= 0) {
       temperature = fromLocalTemperature(message.substring(13).toInt());
     }
-    if (message.indexOf("setKp") >= 0) {
+    if (message.indexOf("setKp=") >= 0) {
       Kp = message.substring(6).toDouble();
-      heatControlPid.SetTunings(Kp,Kd,Ki);
+      heatControlPid.SetTunings(Kp,Ki,Kd);
     }
-    if (message.indexOf("setKd") >= 0) {
+    if (message.indexOf("setKd=") >= 0) {
       Kd = message.substring(6).toDouble();
-      heatControlPid.SetTunings(Kp,Kd,Ki);
+      heatControlPid.SetTunings(Kp,Ki,Kd);
     }
-    if (message.indexOf("setKi") >= 0) {
+    if (message.indexOf("setKi=") >= 0) {
       Ki = message.substring(6).toDouble();
-      heatControlPid.SetTunings(Kp,Kd,Ki);
+      heatControlPid.SetTunings(Kp,Ki,Kd);
+    }
+    if (message.indexOf("setCookTime=") >= 0) {
+      cookEndTime = millis() + (message.substring(12).toInt() * 60000l);
     }
   }
 }
