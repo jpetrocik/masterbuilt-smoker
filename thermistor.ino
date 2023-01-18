@@ -16,35 +16,43 @@
 #define SSID "PNET"
 #define PASSWORD "5626278472"
 
-#define SERIES_RESISTOR 47000
-#define VOLTAGE_DIVIDE 152988000 // (3.3 / SERIESRESISTOR) * 1000   
 #define ADC_SAMPLE_SIZE 20
 
+#define TEMP_SERIES_RESISTOR 46360
+#define TEMP_VOLTAGE_DIVIDE 152988000 // 3.3 * TEMP_SERIES_RESISTOR * 1000   
+#define PROBE_SERIES_RESISTOR 89000
+#define PROBE_VOLTAGE_DIVIDE 293700000 // 3.3 * PROBE_SERIES_RESISTOR * 1000   
+
 #define TEMPERATURE_PIN 34
-#define THERMISTOR1_PIN 35
-#define THERMISTOR2_PIN 32
-#define THERMISTOR3_PIN 33
-#define THERMISTOR4_PIN 39
+#define PROBE1_PIN 35
+#define PROBE2_PIN 32
+#define PROBE3_PIN 33
+#define PROBE4_PIN 39
 #define HEAT_PIN 5
 
-#define THERMISTOR 100000
-#define A 0.5256707269e-3
-#define B 2.549879363e-4
-#define C 0.4157461131e-7
+#define TEMP_A 0.5256707269e-3
+#define TEMP_B 2.549879363e-4
+#define TEMP_C 0.4157461131e-7
+
+#define PROBE_A 0.8365697887e-3
+#define PROBE_B 1.810007004e-4
+#define PROBE_C 1.573802637e-7
 
 #define PID_WINDOW_SIZE 2000
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-uint16_t adc1_buffer[ADC_SAMPLE_SIZE] = {0};
-uint8_t adc1_index = 0;
-uint16_t adc2_buffer[ADC_SAMPLE_SIZE] = {0};
-uint8_t adc2_index = 0;
-uint16_t adc3_buffer[ADC_SAMPLE_SIZE] = {0};
-uint8_t adc3_index = 0;
-uint16_t adc4_buffer[ADC_SAMPLE_SIZE] = {0};
-uint8_t adc4_index = 0;
+uint16_t temp_buffer[ADC_SAMPLE_SIZE] = {0};
+uint8_t temp_index = 0;
+uint16_t probe1_buffer[ADC_SAMPLE_SIZE] = {0};
+uint8_t probe1_index = 0;
+uint16_t probe2_buffer[ADC_SAMPLE_SIZE] = {0};
+uint8_t probe2_index = 0;
+uint16_t probe3_buffer[ADC_SAMPLE_SIZE] = {0};
+uint8_t probe3_index = 0;
+uint16_t probe4_buffer[ADC_SAMPLE_SIZE] = {0};
+uint8_t probe4_index = 0;
 
 //main loop variables
 uint16_t reading;
@@ -53,10 +61,10 @@ uint32_t resistance;
 
 //current state
 double temperature;
-double probe1;
-double probe2;
-double probe3;
-double probe4;
+double probe1 = 0;
+double probe2 = 0;
+double probe3 = 0;
+double probe4 = 0;
 double targetTemperature = 0;
 long lastRead;
 long cookEndTime = 0;
@@ -92,7 +100,8 @@ void setup(void) {
   server.begin();
 
   pinMode(HEAT_PIN, OUTPUT);
-  pinMode(THERMISTOR1_PIN, INPUT);
+  pinMode(TEMPERATURE_PIN, INPUT);
+  pinMode(PROBE1_PIN, INPUT);
 }
 
 void loop(void) {
@@ -105,9 +114,11 @@ void loop(void) {
 
   if (now - lastRead > 1000) 
   {
-    temperature = readTemperature(TEMPERATURE_PIN);  //need to pass buffer array
-    Serial.print("Temperature ");
-    Serial.println(toLocalTemperature(temperature));
+    temperature = readTemperature(TEMPERATURE_PIN, temp_buffer, &temp_index);
+//  probe1 = readTemperature(PROBE1_PIN, probe1_buffer, &probe1_index);
+//  probe2 = readTemperature(PROBE2_PIN, probe2_buffer, &probe2_index);
+//  probe3 = readTemperature(PROBE3_PIN, probe3_buffer, &probe3_index);
+    probe4 = readTemperature(PROBE4_PIN, probe4_buffer, &probe4_index);
 
     lastRead = now;
   }
@@ -116,13 +127,7 @@ void loop(void) {
     abortError = true;
     return;
   }
-
-//  probe1 = readTemperature(THERMISTOR1_PIN);
-//  probe2 = readTemperature(THERMISTOR2_PIN);
-//  probe3 = readTemperature(THERMISTOR3_PIN);
-//  probe4 = readTemperature(THERMISTOR4_PIN);
   
-
   if (targetTemperature < 38 || cookEndTime < now)
   {
     digitalWrite(HEAT_PIN, LOW);
@@ -139,7 +144,7 @@ void loop(void) {
     JSONVar tempData;
     tempData["temperature"] = (int)toLocalTemperature(temperature);
     tempData["target"] = (int)toLocalTemperature(targetTemperature);
-    tempData["cookTime"] = (cookEndTime - now)/60000;
+    tempData["cookTime"] = cookEndTime > 0 ? (cookEndTime - now)/60000 : 0;
     tempData["probe1"] = (int)toLocalTemperature(probe1);
     tempData["probe2"] = (int)toLocalTemperature(probe2);
     tempData["probe3"] = (int)toLocalTemperature(probe3);
@@ -175,12 +180,18 @@ void computePID() {
 
 }
 
-double readTemperature(int pin) {
+double readTemperature(int pin, uint16_t adc_buffer[], uint8_t* adc_index_ptr) {
   reading = analogRead(pin);
   voltage = readADC_Cal(reading);
-  voltage = readADC_Avg(voltage, adc1_buffer, &adc1_index);
-  resistance = (VOLTAGE_DIVIDE / voltage) - SERIES_RESISTOR;
-  return calculate_Tempature_SH_Value(resistance);
+  voltage = readADC_Avg(voltage, adc_buffer, adc_index_ptr);
+  if (pin == TEMPERATURE_PIN) {
+    resistance = (TEMP_VOLTAGE_DIVIDE / voltage) - TEMP_SERIES_RESISTOR;
+    return calculate_Temperature_SH_Value(resistance);
+  } else { 
+    resistance = (PROBE_VOLTAGE_DIVIDE / voltage) - PROBE_SERIES_RESISTOR;
+    return calculate_Probe_SH_Value(resistance);
+  }
+  
 }
 
 double toLocalTemperature(double value) {
@@ -191,7 +202,7 @@ double fromLocalTemperature(double value) {
   return (value - 32) / 1.8;
 }
 
-float calculate_Tempature_B_Value(uint32_t res) {
+float calculate_Temperature_B_Value(uint32_t res) {
   //B value calculation
   float bVale = res / 100000.0;     // (R/Ro)
   bVale = log(bVale);                  // ln(R/Ro)
@@ -203,9 +214,15 @@ float calculate_Tempature_B_Value(uint32_t res) {
   return bVale;
 }
 
-float calculate_Tempature_SH_Value(uint32_t res) {
+float calculate_Temperature_SH_Value(uint32_t res) {
   float logRes = log(res);           // Pre-Calcul for Log(R2)
-  float temp = (1.0 / (A + B * logRes + C * logRes * logRes * logRes));
+  float temp = (1.0 / (TEMP_A + TEMP_B * logRes + TEMP_C * logRes * logRes * logRes));
+  return  temp - 273.15;             // convert Kelvin to *C
+}
+
+float calculate_Probe_SH_Value(uint32_t res) {
+  float logRes = log(res);           // Pre-Calcul for Log(R2)
+  float temp = (1.0 / (PROBE_A + PROBE_B * logRes + PROBE_C * logRes * logRes * logRes));
   return  temp - 273.15;             // convert Kelvin to *C
 }
 
