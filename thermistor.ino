@@ -38,6 +38,10 @@
 #define PROBE_B 1.810007004e-4
 #define PROBE_C 1.573802637e-7
 
+//#define PROBE_A 0.2895581821e-3
+//#define PROBE_B 2.573472783e-4       
+//#define PROBE_C -0.6218439951e-7 
+
 #define PID_WINDOW_SIZE 2000
 
 AsyncWebServer server(80);
@@ -60,7 +64,7 @@ uint32_t voltage;
 uint32_t resistance;
 
 //current state
-double temperature;
+double temperature = 0;
 double probe1 = 0;
 double probe2 = 0;
 double probe3 = 0;
@@ -128,7 +132,7 @@ void loop(void) {
     return;
   }
   
-  if (targetTemperature < 38 || cookEndTime < now)
+  if (targetTemperature < 22 || cookEndTime < now)
   {
     digitalWrite(HEAT_PIN, LOW);
     timeOn = 0;
