@@ -82,7 +82,7 @@ long wsLastDataLog;
 double timeOn;
 
 //Specify the links and initial tuning parameters
-double Kp = 150, Ki = 0, Kd = 50;
+double Kp = 100, Ki = 0.05, Kd = 150;
 PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT);
 bool abortError = false;
 
