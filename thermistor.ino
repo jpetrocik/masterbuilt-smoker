@@ -35,9 +35,9 @@
 #define TEMP_B 2.549879363e-4
 #define TEMP_C 0.4157461131e-7
 
-#define PROBE_A 0.8365697887e-3
-#define PROBE_B 1.810007004e-4
-#define PROBE_C 1.573802637e-7
+#define PROBE_A -2.318528277e-3
+#define PROBE_B 5.765092293e-4
+#define PROBE_C -7.782354651e-7
 
 //#define PROBE_A 0.2895581821e-3
 //#define PROBE_B 2.573472783e-4       
@@ -63,6 +63,8 @@ uint8_t probe4_index = 0;
 uint16_t reading;
 uint32_t voltage;
 uint32_t resistance;
+uint32_t debug_resistance1;
+uint32_t debug_resistance2;
 
 //current state
 double temperature = 0;
@@ -82,7 +84,7 @@ long wsLastDataLog;
 double timeOn;
 
 //Specify the links and initial tuning parameters
-double Kp = 100, Ki = 0.05, Kd = 150;
+double Kp = 300, Ki = 0.05, Kd = 150;
 PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT);
 bool abortError = false;
 
@@ -124,15 +126,17 @@ void loop(void) {
   if (now - lastRead > 1000) 
   {
     temperature = readTemperature(TEMPERATURE_PIN, temp_buffer, &temp_index);
+    debug_resistance1 = resistance;
 //  probe1 = readTemperature(PROBE1_PIN, probe1_buffer, &probe1_index);
 //  probe2 = readTemperature(PROBE2_PIN, probe2_buffer, &probe2_index);
 //  probe3 = readTemperature(PROBE3_PIN, probe3_buffer, &probe3_index);
     probe4 = readTemperature(PROBE4_PIN, probe4_buffer, &probe4_index);
+    debug_resistance2 = resistance;
 
     lastRead = now;
   }
   
-  if (temperature > 120) { //high temp safety
+  if (temperature > 168) { //high temp safety
     abortError = true;
     return;
   }
@@ -152,12 +156,14 @@ void loop(void) {
 
     JSONVar tempData;
     tempData["temperature"] = (int)toLocalTemperature(temperature);
+    tempData["temperature_r"] = debug_resistance1;
     tempData["target"] = (int)toLocalTemperature(targetTemperature);
     tempData["cookTime"] = cookEndTime > 0 ? (cookEndTime - now)/60000 : 0;
     tempData["probe1"] = (int)toLocalTemperature(probe1);
     tempData["probe2"] = (int)toLocalTemperature(probe2);
     tempData["probe3"] = (int)toLocalTemperature(probe3);
-    tempData["probe4"] = (int)toLocalTemperature(probe4);
+    tempData["probe4"] = (uint32_t)toLocalTemperature(probe4);
+    tempData["probe4_r"] = debug_resistance2;
     tempData["dutyCycle"] = timeOn/(double)PID_WINDOW_SIZE;
 
     String jsonString = JSON.stringify(tempData);
