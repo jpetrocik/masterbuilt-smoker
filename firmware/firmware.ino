@@ -6,6 +6,7 @@
 // https://learn.adafruit.com/thermistor/using-a-thermistor by Limor Fried, Adafruit Industries
 // MIT License - please keep attribution and consider buying parts from Adafruit
 
+//#include "driver/adc.h"
 #include "esp_adc_cal.h"
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -19,21 +20,21 @@
 
 #define ADC_SAMPLE_SIZE 20
 
-#define TEMP_SERIES_RESISTOR 46360
-#define TEMP_VOLTAGE_DIVIDE 152988000 // 3.3 * TEMP_SERIES_RESISTOR * 1000   
+#define TEMP_SERIES_RESISTOR 9800
+#define TEMP_VOLTAGE_DIVIDE 32340000 // 3.3 * TEMP_SERIES_RESISTOR * 1000   
 #define PROBE_SERIES_RESISTOR 89000
-#define PROBE_VOLTAGE_DIVIDE 293700000 // 3.3 * PROBE_SERIES_RESISTOR * 1000   
+#define PROBE_VOLTAGE_DIVIDE 293700000L // 3.3 * PROBE_SERIES_RESISTOR * 1000   
 
-#define TEMPERATURE_PIN 34
-#define PROBE1_PIN 35
-#define PROBE2_PIN 32
-#define PROBE3_PIN 33
-#define PROBE4_PIN 39
+//#define TEMPERATURE_PIN ADC1_CHANNEL_6
+//#define PROBE1_PIN 35
+//#define PROBE2_PIN 32
+//#define PROBE3_PIN 33
+//#define PROBE4_PIN ADC1_CHANNEL_3
 #define HEAT_PIN 5
 
-#define TEMP_A 0.5256707269e-3
-#define TEMP_B 2.549879363e-4
-#define TEMP_C 0.4157461131e-7
+#define TEMP_A 1.006889434e-3
+#define TEMP_B 1.779205684e-4
+#define TEMP_C 3.280547749e-7
 
 #define PROBE_A -2.318528277e-3
 #define PROBE_B 5.765092293e-4
@@ -92,6 +93,8 @@ unsigned long windowStartTime;
 
 long now;
 
+esp_adc_cal_characteristics_t adc1_chars;
+
 void setup(void) {
   Serial.begin(115200);
 
@@ -109,8 +112,17 @@ void setup(void) {
   server.begin();
 
   pinMode(HEAT_PIN, OUTPUT);
-  pinMode(TEMPERATURE_PIN, INPUT);
-  pinMode(PROBE1_PIN, INPUT);
+//  pinMode(TEMPERATURE_PIN, INPUT);
+//  pinMode(PROBE1_PIN, INPUT);
+
+  //https://embeddedexplorer.com/esp32-adc-esp-idf-tutorial/
+  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 0, &adc1_chars);
+  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
+
+  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11));
+  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11));
+
+
 }
 
 void loop(void) {
@@ -125,12 +137,12 @@ void loop(void) {
 
   if (now - lastRead > 1000) 
   {
-    temperature = readTemperature(TEMPERATURE_PIN, temp_buffer, &temp_index);
+    temperature = readTemperature(ADC1_CHANNEL_6, temp_buffer, &temp_index);
     debug_resistance1 = resistance;
 //  probe1 = readTemperature(PROBE1_PIN, probe1_buffer, &probe1_index);
 //  probe2 = readTemperature(PROBE2_PIN, probe2_buffer, &probe2_index);
 //  probe3 = readTemperature(PROBE3_PIN, probe3_buffer, &probe3_index);
-    probe4 = readTemperature(PROBE4_PIN, probe4_buffer, &probe4_index);
+    probe4 = readTemperature(ADC1_CHANNEL_3, probe4_buffer, &probe4_index);
     debug_resistance2 = resistance;
 
     lastRead = now;
@@ -195,11 +207,11 @@ void computePID() {
 
 }
 
-double readTemperature(int pin, uint16_t adc_buffer[], uint8_t* adc_index_ptr) {
-  reading = analogRead(pin);
-  voltage = readADC_Cal(reading);
+double readTemperature(adc1_channel_t channel, uint16_t adc_buffer[], uint8_t* adc_index_ptr) {
+  reading = adc1_get_raw(channel);
+  voltage = esp_adc_cal_raw_to_voltage(reading, &adc1_chars);
   voltage = readADC_Avg(voltage, adc_buffer, adc_index_ptr);
-  if (pin == TEMPERATURE_PIN) {
+  if (channel == ADC1_CHANNEL_6) {
     resistance = (TEMP_VOLTAGE_DIVIDE / voltage) - TEMP_SERIES_RESISTOR;
     return calculate_Temperature_SH_Value(resistance);
   } else { 
@@ -241,13 +253,10 @@ float calculate_Probe_SH_Value(uint32_t res) {
   return  temp - 273.15;             // convert Kelvin to *C
 }
 
-uint32_t readADC_Cal(int16_t ADC_Raw)
-{
-  esp_adc_cal_characteristics_t adc_chars;
-
-  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
-  return (esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars));
-}
+//uint32_t readADC_Cal(int16_t ADC_Raw)
+//{
+//  return esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars);
+//}
 
 uint32_t readADC_Avg(uint16_t sample, uint16_t adc_buffer[], uint8_t* adc_index_ptr)
 {
