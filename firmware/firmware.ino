@@ -20,25 +20,25 @@
 
 #define ADC_SAMPLE_SIZE 20
 
-#define TEMP_SERIES_RESISTOR 9800
-#define TEMP_VOLTAGE_DIVIDE 32340000 // 3.3 * TEMP_SERIES_RESISTOR * 1000   
-#define PROBE_SERIES_RESISTOR 89000
-#define PROBE_VOLTAGE_DIVIDE 293700000L // 3.3 * PROBE_SERIES_RESISTOR * 1000   
+#define TEMP_SERIES_RESISTOR 5400
+#define TEMP_VOLTAGE_DIVIDE 17820000 // 3.3 * TEMP_SERIES_RESISTOR * 1000   
+#define PROBE_SERIES_RESISTOR 5400
+#define PROBE_VOLTAGE_DIVIDE 17820000 // 3.3 * PROBE_SERIES_RESISTOR * 1000   
 
 //#define TEMPERATURE_PIN ADC1_CHANNEL_6
 //#define PROBE1_PIN 35
 //#define PROBE2_PIN 32
 //#define PROBE3_PIN 33
-//#define PROBE4_PIN ADC1_CHANNEL_3
+//#define PROBE4_PIN 39
 #define HEAT_PIN 5
 
-#define TEMP_A 1.006889434e-3
-#define TEMP_B 1.779205684e-4
-#define TEMP_C 3.280547749e-7
+#define TEMP_A 1.136646777e-3
+#define TEMP_B 1.600914823e-4
+#define TEMP_C 3.695194917e-7
 
-#define PROBE_A -2.318528277e-3
-#define PROBE_B 5.765092293e-4
-#define PROBE_C -7.782354651e-7
+#define PROBE_A -0.4885255109e-3
+#define PROBE_B 4.082924384e-4
+#define PROBE_C -5.463408188e-7
 
 //#define PROBE_A 0.2895581821e-3
 //#define PROBE_B 2.573472783e-4       
@@ -46,9 +46,12 @@
 
 #define PID_WINDOW_SIZE 2000
 
+double Kp = 300, Ki = 0.05, Kd = 150;
+
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
+//adc buffers
 uint16_t temp_buffer[ADC_SAMPLE_SIZE] = {0};
 uint8_t temp_index = 0;
 uint16_t probe1_buffer[ADC_SAMPLE_SIZE] = {0};
@@ -61,6 +64,10 @@ uint16_t probe4_buffer[ADC_SAMPLE_SIZE] = {0};
 uint8_t probe4_index = 0;
 
 //main loop variables
+long now;
+String jsonString;
+JSONVar tempData;
+bool abortError = false;
 uint16_t reading;
 uint32_t voltage;
 uint32_t resistance;
@@ -81,17 +88,13 @@ long cookEndTime = 0;
 long wifiConnecting;
 long wsLastDataLog;
 
-//Define Variables we'll be connecting to
+//PID
 double timeOn;
-
-//Specify the links and initial tuning parameters
-double Kp = 300, Ki = 0.05, Kd = 150;
-PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT);
-bool abortError = false;
-
 unsigned long windowStartTime;
+PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT);
 
-long now;
+
+//Main loop variables
 
 esp_adc_cal_characteristics_t adc1_chars;
 
@@ -112,15 +115,16 @@ void setup(void) {
   server.begin();
 
   pinMode(HEAT_PIN, OUTPUT);
-//  pinMode(TEMPERATURE_PIN, INPUT);
-//  pinMode(PROBE1_PIN, INPUT);
 
   //https://embeddedexplorer.com/esp32-adc-esp-idf-tutorial/
   esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 0, &adc1_chars);
-  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
-
-  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11));
-  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
+//
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_7, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_11));
 
 
 }
@@ -135,25 +139,24 @@ void loop(void) {
 
   now = millis();
 
+  //275 (135) Max allowed target temperature
+  if (targetTemperature > 135)
+    targetTemperature = 135;
+
   if (now - lastRead > 1000) 
   {
-    temperature = readTemperature(ADC1_CHANNEL_6, temp_buffer, &temp_index);
+    temperature = readTemperature(ADC_CHANNEL_6, temp_buffer, &temp_index);
     debug_resistance1 = resistance;
-//  probe1 = readTemperature(PROBE1_PIN, probe1_buffer, &probe1_index);
-//  probe2 = readTemperature(PROBE2_PIN, probe2_buffer, &probe2_index);
-//  probe3 = readTemperature(PROBE3_PIN, probe3_buffer, &probe3_index);
-    probe4 = readTemperature(ADC1_CHANNEL_3, probe4_buffer, &probe4_index);
+    probe1 = readTemperature(ADC_CHANNEL_7, probe1_buffer, &probe1_index);
+    probe2 = readTemperature(ADC_CHANNEL_4, probe2_buffer, &probe2_index);
+    probe3 = readTemperature(ADC_CHANNEL_5, probe3_buffer, &probe3_index);
     debug_resistance2 = resistance;
+    probe4 = readTemperature(ADC_CHANNEL_3, probe4_buffer, &probe4_index);
 
     lastRead = now;
   }
   
-  if (temperature > 168) { //high temp safety
-    abortError = true;
-    return;
-  }
-  
-  if (targetTemperature < 22 || cookEndTime < now)
+  if (targetTemperature < 37 || cookEndTime < now)
   {
     digitalWrite(HEAT_PIN, LOW);
     timeOn = 0;
@@ -166,7 +169,6 @@ void loop(void) {
   if (now - wsLastDataLog > 5000) {
     wsLastDataLog = now;
 
-    JSONVar tempData;
     tempData["temperature"] = (int)toLocalTemperature(temperature);
     tempData["temperature_r"] = debug_resistance1;
     tempData["target"] = (int)toLocalTemperature(targetTemperature);
@@ -178,15 +180,8 @@ void loop(void) {
     tempData["probe4_r"] = debug_resistance2;
     tempData["dutyCycle"] = timeOn/(double)PID_WINDOW_SIZE;
 
-    String jsonString = JSON.stringify(tempData);
+    jsonString = JSON.stringify(tempData);
     notifyClients(jsonString);
-
-    Serial.print("Time on ");
-    Serial.println(timeOn);
-
-    Serial.print("Window ");
-    Serial.println(PID_WINDOW_SIZE - (now - windowStartTime));
-
   }
 }
 
@@ -207,15 +202,17 @@ void computePID() {
 
 }
 
-double readTemperature(adc1_channel_t channel, uint16_t adc_buffer[], uint8_t* adc_index_ptr) {
-  reading = adc1_get_raw(channel);
-  voltage = esp_adc_cal_raw_to_voltage(reading, &adc1_chars);
+double readTemperature(adc_channel_t channel, uint16_t adc_buffer[], uint8_t* adc_index_ptr) {
+//  reading = adc1_get_raw(channel);
+Serial.println(adc1_chars.vref);
+
+  ESP_ERROR_CHECK(esp_adc_cal_get_voltage(channel, &adc1_chars, &voltage));
   voltage = readADC_Avg(voltage, adc_buffer, adc_index_ptr);
   if (channel == ADC1_CHANNEL_6) {
     resistance = (TEMP_VOLTAGE_DIVIDE / voltage) - TEMP_SERIES_RESISTOR;
     return calculate_Temperature_SH_Value(resistance);
   } else { 
-    resistance = (PROBE_VOLTAGE_DIVIDE / voltage) - PROBE_SERIES_RESISTOR;
+    resistance = (PROBE_SERIES_RESISTOR * voltage) / (3300 - voltage); //- PROBE_SERIES_RESISTOR;
     return calculate_Probe_SH_Value(resistance);
   }
   
