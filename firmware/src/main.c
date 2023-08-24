@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "math.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "soc/soc_caps.h"
@@ -13,6 +14,7 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
+#include <PID_v1.h>
 
 const static char *TAG = "EXAMPLE";
 
@@ -23,7 +25,7 @@ const static char *TAG = "EXAMPLE";
 ---------------------------------------------------------------*/
 //ADC1 Channels
 #if CONFIG_IDF_TARGET_ESP32
-#define EXAMPLE_ADC1_CHAN0          ADC_CHANNEL_7
+#define EXAMPLE_ADC1_CHAN0          ADC_CHANNEL_6
 #define EXAMPLE_ADC1_CHAN1          ADC_CHANNEL_5
 #else
 #define EXAMPLE_ADC1_CHAN0          ADC_CHANNEL_2
@@ -53,7 +55,6 @@ static int adc_raw[2][10];
 static int voltage[2][10];
 static bool example_adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle);
 static void example_adc_calibration_deinit(adc_cali_handle_t handle);
-long res;
 
 void app_main(void)
 {
@@ -99,8 +100,7 @@ void app_main(void)
         // ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, adc_raw[0][0]);
         if (do_calibration1) {
             ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle, adc_raw[0][0], &voltage[0][0]));
-            res = (19345200l/voltage[0][0])-5460;
-            ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV %ld Ohm", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, voltage[0][0], res);
+            ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, voltage[0][0]);
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
 
@@ -108,8 +108,7 @@ void app_main(void)
         // ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN1, adc_raw[0][1]);
         if (do_calibration1) {
             ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle, adc_raw[0][1], &voltage[0][1]));
-            res = (19345200l/voltage[0][1])-5460;
-            ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV %ld Ohm", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN1, voltage[0][1], res);
+            ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN1, voltage[0][1]);
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
 
