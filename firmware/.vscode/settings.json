@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "adc_cali_scheme.h": "c",
-        "adc_oneshot.h": "c"
+        "adc_oneshot.h": "c",
+        "esp_http_server.h": "c",
+        "freertos.h": "c"
     }
 }
