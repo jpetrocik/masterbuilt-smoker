@@ -98,93 +98,6 @@ PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT
 
 esp_adc_cal_characteristics_t adc1_chars;
 
-void setup(void) {
-  Serial.begin(115200);
-
-  windowStartTime = millis();
-
-  heatControlPid.SetOutputLimits(0, PID_WINDOW_SIZE);
-  heatControlPid.SetMode(MANUAL);
-
-  init_WiFi();
-
-  initWebSocket();
-
-  initSetup();
-  
-  server.begin();
-
-  pinMode(HEAT_PIN, OUTPUT);
-
-  //https://embeddedexplorer.com/esp32-adc-esp-idf-tutorial/
-  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 0, &adc1_chars);
-//  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
-//
-//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11));
-//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11));
-//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_11));
-//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_7, ADC_ATTEN_DB_11));
-//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_11));
-
-
-}
-
-void loop(void) {
-  ArduinoOTA.handle();
-
-  if (abortError) {
-    digitalWrite(HEAT_PIN, LOW);
-    return;
-  }
-
-  now = millis();
-
-  //275 (135) Max allowed target temperature
-  if (targetTemperature > 135)
-    targetTemperature = 135;
-
-  if (now - lastRead > 1000) 
-  {
-    temperature = readTemperature(ADC_CHANNEL_6, temp_buffer, &temp_index);
-    debug_resistance1 = resistance;
-    probe1 = readTemperature(ADC_CHANNEL_7, probe1_buffer, &probe1_index);
-    probe2 = readTemperature(ADC_CHANNEL_4, probe2_buffer, &probe2_index);
-    probe3 = readTemperature(ADC_CHANNEL_5, probe3_buffer, &probe3_index);
-    debug_resistance2 = resistance;
-    probe4 = readTemperature(ADC_CHANNEL_3, probe4_buffer, &probe4_index);
-
-    lastRead = now;
-  }
-  
-  if (targetTemperature < 37 || cookEndTime < now)
-  {
-    digitalWrite(HEAT_PIN, LOW);
-    timeOn = 0;
-  }
-  else 
-  {
-    computePID();
-  }
-  
-  if (now - wsLastDataLog > 5000) {
-    wsLastDataLog = now;
-
-    tempData["temperature"] = (int)toLocalTemperature(temperature);
-    tempData["temperature_r"] = debug_resistance1;
-    tempData["target"] = (int)toLocalTemperature(targetTemperature);
-    tempData["cookTime"] = cookEndTime > 0 ? (cookEndTime - now)/60000 : 0;
-    tempData["probe1"] = (int)toLocalTemperature(probe1);
-    tempData["probe2"] = (int)toLocalTemperature(probe2);
-    tempData["probe3"] = (int)toLocalTemperature(probe3);
-    tempData["probe4"] = (uint32_t)toLocalTemperature(probe4);
-    tempData["probe4_r"] = debug_resistance2;
-    tempData["dutyCycle"] = timeOn/(double)PID_WINDOW_SIZE;
-
-    jsonString = JSON.stringify(tempData);
-    notifyClients(jsonString);
-  }
-}
-
 void computePID() {
   heatControlPid.Compute();
 
@@ -202,13 +115,46 @@ void computePID() {
 
 }
 
+uint32_t readADC_Avg(uint16_t sample, uint16_t adc_buffer[], uint8_t* adc_index_ptr)
+{
+  int i = 0;
+  uint32_t sum = 0;
+  uint8_t adc_index = *adc_index_ptr;
+
+  adc_buffer[adc_index++] = sample;
+  if (adc_index == ADC_SAMPLE_SIZE)
+  {
+    adc_index = 0;
+  }
+  for (i = 0; i < ADC_SAMPLE_SIZE; i++)
+  {
+    sum += adc_buffer[i];
+  }
+
+  *adc_index_ptr = adc_index;
+
+  return sum / ADC_SAMPLE_SIZE;
+}
+
+float calculate_Temperature_SH_Value(uint32_t res) {
+  float logRes = log(res);           // Pre-Calcul for Log(R2)
+  float temp = (1.0 / (TEMP_A + TEMP_B * logRes + TEMP_C * logRes * logRes * logRes));
+  return  temp - 273.15;             // convert Kelvin to *C
+}
+
+float calculate_Probe_SH_Value(uint32_t res) {
+  float logRes = log(res);           // Pre-Calcul for Log(R2)
+  float temp = (1.0 / (PROBE_A + PROBE_B * logRes + PROBE_C * logRes * logRes * logRes));
+  return  temp - 273.15;             // convert Kelvin to *C
+}
+
 double readTemperature(adc_channel_t channel, uint16_t adc_buffer[], uint8_t* adc_index_ptr) {
-//  reading = adc1_get_raw(channel);
-Serial.println(adc1_chars.vref);
+  //  reading = adc1_get_raw(channel);
+  Serial.println(adc1_chars.vref);
 
   ESP_ERROR_CHECK(esp_adc_cal_get_voltage(channel, &adc1_chars, &voltage));
   voltage = readADC_Avg(voltage, adc_buffer, adc_index_ptr);
-  if (channel == ADC1_CHANNEL_6) {
+  if (channel == ADC_CHANNEL_6) {
     resistance = (TEMP_VOLTAGE_DIVIDE / voltage) - TEMP_SERIES_RESISTOR;
     return calculate_Temperature_SH_Value(resistance);
   } else { 
@@ -238,43 +184,10 @@ float calculate_Temperature_B_Value(uint32_t res) {
   return bVale;
 }
 
-float calculate_Temperature_SH_Value(uint32_t res) {
-  float logRes = log(res);           // Pre-Calcul for Log(R2)
-  float temp = (1.0 / (TEMP_A + TEMP_B * logRes + TEMP_C * logRes * logRes * logRes));
-  return  temp - 273.15;             // convert Kelvin to *C
-}
-
-float calculate_Probe_SH_Value(uint32_t res) {
-  float logRes = log(res);           // Pre-Calcul for Log(R2)
-  float temp = (1.0 / (PROBE_A + PROBE_B * logRes + PROBE_C * logRes * logRes * logRes));
-  return  temp - 273.15;             // convert Kelvin to *C
-}
-
 //uint32_t readADC_Cal(int16_t ADC_Raw)
 //{
 //  return esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars);
 //}
-
-uint32_t readADC_Avg(uint16_t sample, uint16_t adc_buffer[], uint8_t* adc_index_ptr)
-{
-  int i = 0;
-  uint32_t sum = 0;
-  uint8_t adc_index = *adc_index_ptr;
-
-  adc_buffer[adc_index++] = sample;
-  if (adc_index == ADC_SAMPLE_SIZE)
-  {
-    adc_index = 0;
-  }
-  for (i = 0; i < ADC_SAMPLE_SIZE; i++)
-  {
-    sum += adc_buffer[i];
-  }
-
-  *adc_index_ptr = adc_index;
-
-  return sum / ADC_SAMPLE_SIZE;
-}
 
 void init_WiFi() {
 
@@ -376,3 +289,91 @@ void initSetup() {
   });
   ArduinoOTA.begin();
 }
+
+void setup(void) {
+  Serial.begin(115200);
+
+  windowStartTime = millis();
+
+  heatControlPid.SetOutputLimits(0, PID_WINDOW_SIZE);
+  heatControlPid.SetMode(MANUAL);
+
+  init_WiFi();
+
+  initWebSocket();
+
+  initSetup();
+  
+  server.begin();
+
+  pinMode(HEAT_PIN, OUTPUT);
+
+  //https://embeddedexplorer.com/esp32-adc-esp-idf-tutorial/
+  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 0, &adc1_chars);
+//  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
+//
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_7, ADC_ATTEN_DB_11));
+//  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_11));
+
+
+}
+
+void loop(void) {
+  ArduinoOTA.handle();
+
+  if (abortError) {
+    digitalWrite(HEAT_PIN, LOW);
+    return;
+  }
+
+  now = millis();
+
+  //275 (135) Max allowed target temperature
+  if (targetTemperature > 135)
+    targetTemperature = 135;
+
+  if (now - lastRead > 1000) 
+  {
+    temperature = readTemperature(ADC_CHANNEL_6, temp_buffer, &temp_index);
+    debug_resistance1 = resistance;
+    probe1 = readTemperature(ADC_CHANNEL_7, probe1_buffer, &probe1_index);
+    probe2 = readTemperature(ADC_CHANNEL_4, probe2_buffer, &probe2_index);
+    probe3 = readTemperature(ADC_CHANNEL_5, probe3_buffer, &probe3_index);
+    debug_resistance2 = resistance;
+    probe4 = readTemperature(ADC_CHANNEL_3, probe4_buffer, &probe4_index);
+
+    lastRead = now;
+  }
+  
+  if (targetTemperature < 37 || cookEndTime < now)
+  {
+    digitalWrite(HEAT_PIN, LOW);
+    timeOn = 0;
+  }
+  else 
+  {
+    computePID();
+  }
+  
+  if (now - wsLastDataLog > 5000) {
+    wsLastDataLog = now;
+
+    tempData["temperature"] = (int)toLocalTemperature(temperature);
+    tempData["temperature_r"] = debug_resistance1;
+    tempData["target"] = (int)toLocalTemperature(targetTemperature);
+    tempData["cookTime"] = cookEndTime > 0 ? (cookEndTime - now)/60000 : 0;
+    tempData["probe1"] = (int)toLocalTemperature(probe1);
+    tempData["probe2"] = (int)toLocalTemperature(probe2);
+    tempData["probe3"] = (int)toLocalTemperature(probe3);
+    tempData["probe4"] = (uint32_t)toLocalTemperature(probe4);
+    tempData["probe4_r"] = debug_resistance2;
+    tempData["dutyCycle"] = timeOn/(double)PID_WINDOW_SIZE;
+
+    jsonString = JSON.stringify(tempData);
+    notifyClients(jsonString);
+  }
+}
+
