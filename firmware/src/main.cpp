@@ -11,20 +11,18 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <Arduino_JSON.h>
+#include <ArduinoJson.h>
 #include <PID_v1.h>
 #include <ArduinoOTA.h>
+#include <Adafruit_ADS1X15.h>
 
 #define SSID "PNET"
 #define PASSWORD "5626278472"
 
-#define ADC_SAMPLE_SIZE 20
+#define ADC_SAMPLE_SIZE 3
 
-#define VOLTAGE_ADJUSTMENT 0
 #define TEMP_SERIES_RESISTOR 5400
-#define TEMP_VOLTAGE_DIVIDE 17820000 // 3.3 * TEMP_SERIES_RESISTOR * 1000
-#define PROBE_SERIES_RESISTOR 5400
-#define PROBE_VOLTAGE_DIVIDE 17820000 // 3.3 * PROBE_SERIES_RESISTOR * 1000
+#define PROBE_SERIES_RESISTOR 10000
 
 // #define TEMPERATURE_PIN ADC1_CHANNEL_6
 // #define PROBE1_PIN 35
@@ -67,9 +65,9 @@ uint8_t probe4_index = 0;
 // main loop variables
 long now;
 String jsonString;
-JSONVar tempData;
+JsonDocument tempData;
 bool abortError = false;
-uint16_t reading;
+int16_t reading;
 uint32_t voltage;
 uint32_t resistance;
 uint32_t probe1_resistance;
@@ -103,6 +101,9 @@ PID heatControlPid(&temperature, &timeOn, &targetTemperature, Kp, Ki, Kd, DIRECT
 // Main loop variables
 
 esp_adc_cal_characteristics_t adc1_chars;
+
+Adafruit_ADS1115 ads1;
+Adafruit_ADS1115 ads2;
 
 void computePID()
 {
@@ -156,26 +157,21 @@ float calculate_Probe_SH_Value(uint32_t res)
   return temp - 273.15; // convert Kelvin to *C
 }
 
-double readTemperature(adc_channel_t channel, uint16_t adc_buffer[], uint8_t *adc_index_ptr)
+double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resistor, uint16_t adc_buffer[], uint8_t *adc_index_ptr)
 {
-  //  reading = adc1_get_raw(channel);
-  // Serial.println(adc1_chars.vref);
-  // Serial.println(WiFi.localIP());
+  reading = ads->readADC_SingleEnded(input);
 
-  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, 0, &adc1_chars);
-  ESP_ERROR_CHECK(esp_adc_cal_get_voltage(channel, &adc1_chars, &voltage));
-  voltage = readADC_Avg(voltage - VOLTAGE_ADJUSTMENT, adc_buffer, adc_index_ptr);
-  if (channel == ADC_CHANNEL_6)
-  {
-    resistance = (TEMP_VOLTAGE_DIVIDE / voltage) - TEMP_SERIES_RESISTOR;
-    return calculate_Temperature_SH_Value(resistance);
-  }
-  else
-  {
-    //Voltage is 3.3V, extra zeros are for additional precision during int math
-    resistance = (PROBE_SERIES_RESISTOR * (33000000 / voltage - 1)) / 10000;
-    return calculate_Probe_SH_Value(resistance);
-  }
+  voltage = reading * 187500 / 1000000;
+
+  voltage = readADC_Avg(voltage, adc_buffer, adc_index_ptr);
+
+  // Voltage is 3.3V, extra zeros are for additional precision during int math
+  resistance = (series_resistor * (33000000 / voltage - 10000)) / 10000;
+
+  if (reading < 50)
+    return 0.0;
+
+  return calculate_Probe_SH_Value(resistance);
 }
 
 double toLocalTemperature(double value)
@@ -201,11 +197,6 @@ float calculate_Temperature_B_Value(uint32_t res)
   return bVale;
 }
 
-// uint32_t readADC_Cal(int16_t ADC_Raw)
-//{
-//   return esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars);
-// }
-
 void init_WiFi()
 {
 
@@ -222,9 +213,9 @@ void init_WiFi()
   Serial.println(WiFi.localIP());
 }
 
-void notifyClients(String sliderValues)
+void notifyClients(String body)
 {
-  ws.textAll(sliderValues);
+  ws.textAll(body);
 }
 
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
@@ -338,13 +329,19 @@ void setup(void)
 
   pinMode(HEAT_PIN, OUTPUT);
 
-  // https://embeddedexplorer.com/esp32-adc-esp-idf-tutorial/
-  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11));
-  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11));
-  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_11));
-  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_7, ADC_ATTEN_DB_11));
-  ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_11));
-  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_11));
+  if (!ads1.begin())
+  {
+    Serial.println("Failed to initialize ADS1.");
+    while (1)
+      ;
+  }
+
+  if (!ads2.begin(0x49))
+  {
+    Serial.println("Failed to initialize ADS2.");
+    while (1)
+      ;
+  }
 }
 
 void loop(void)
@@ -365,19 +362,19 @@ void loop(void)
 
   if (now - lastRead > 1000)
   {
-    // temperature = readTemperature(ADC_CHANNEL_6, temp_buffer, &temp_index);
-    // probe1 = readTemperature(ADC_CHANNEL_7, probe1_buffer, &probe1_index);
-    // probe1_voltage = voltage;
-    // probe1_resistance = resistance;
-    // probe2 = readTemperature(ADC_CHANNEL_4, probe2_buffer, &probe2_index);
+    // temperature = readTemperature(&ads1, 0, TEMP_SERIES_RESISTOR, temp_buffer, &temp_index);
+    probe1 = readTemperature(&ads1, 0 /*1*/, PROBE_SERIES_RESISTOR, probe1_buffer, &probe1_index);
+    probe1_voltage = voltage;
+    probe1_resistance = resistance;
+    // probe2 = readTemperature(&ads1, 2, PROBE_SERIES_RESISTOR, probe2_buffer, &probe2_index);
     // probe2_voltage = voltage;
     // probe2_resistance = resistance;
-    probe3 = readTemperature(ADC_CHANNEL_5, probe3_buffer, &probe3_index);
-    probe3_voltage = voltage;
-    probe3_resistance = resistance;
-    // probe4 = readTemperature(ADC_CHANNEL_3, probe4_buffer, &probe4_index);
-    // probe4_voltage = voltage;
-    // probe4_resistance = resistance;
+    // probe3 = readTemperature(&ads1, 3, PROBE_SERIES_RESISTOR, probe3_buffer, &probe3_index);
+    // probe3_voltage = voltage;
+    // probe3_resistance = resistance;
+    probe4 = readTemperature(&ads2, 0, PROBE_SERIES_RESISTOR, probe4_buffer, &probe4_index);
+    probe4_voltage = voltage;
+    probe4_resistance = resistance;
 
     lastRead = now;
   }
@@ -400,21 +397,30 @@ void loop(void)
     tempData["temperature_r"] = -1;
     tempData["target"] = (int)toLocalTemperature(targetTemperature);
     tempData["cookTime"] = cookEndTime > 0 ? (cookEndTime - now) / 60000 : 0;
-    // tempData["probe1"] = (int)toLocalTemperature(probe1);
-    tempData["probe1_voltage"] = probe1_voltage;
-    // tempData["probe1_resistance"] = probe1_resistance;
+    tempData.remove("probe1");
+    if (probe1 > 0.0)
+    {
+      tempData["probe1"] = (int)toLocalTemperature(probe1);
+      // tempData["probe1_voltage"] = probe1_voltage;
+      // tempData["probe1_resistance"] = probe1_resistance;
+    }
     // tempData["probe2"] = (int)toLocalTemperature(probe2);
-    tempData["probe2_voltage"] = probe2_voltage;
+    // tempData["probe2_voltage"] = probe2_voltage;
     // tempData["probe2_resistance"] = probe2_resistance;
-    tempData["probe3"] = (int)toLocalTemperature(probe3);
-    tempData["probe3_voltage"] = probe3_voltage;
-    tempData["probe3_resistance"] = probe3_resistance;
-    // tempData["probe4"] = (uint32_t)toLocalTemperature(probe4);
-    tempData["probe4_voltage"] = probe4_voltage;
-    // tempData["probe4_resistance"] = probe4_resistance;
+    // tempData["probe3"] = (int)toLocalTemperature(probe3);
+    // tempData["probe3_voltage"] = probe3_voltage;
+    // tempData["probe3_resistance"] = probe3_resistance;
+    tempData.remove("probe4");
+    if (probe4 > 0.0)
+    {
+      tempData["probe4"] = (uint32_t)toLocalTemperature(probe4);
+      // tempData["probe4_voltage"] = probe4_voltage;
+      // tempData["probe4_resistance"] = probe4_resistance;
+    }
     // tempData["dutyCycle"] = timeOn/(double)PID_WINDOW_SIZE;
 
-    jsonString = JSON.stringify(tempData);
+    serializeJson(tempData, jsonString);
+
     notifyClients(jsonString);
   }
 }
