@@ -1,4 +1,0 @@
-(fp_lib_table
-  (version 7)
-  (lib (name "PowerModule")(type "KiCad")(uri "$(KIPRJMOD)/PowerModule.pretty")(options "")(descr ""))
-)
