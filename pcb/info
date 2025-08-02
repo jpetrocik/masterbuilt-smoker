@@ -1,10 +1,10 @@
 {
   "uuid": "48734c8482287ccb02120efe81ac97b6",
-  "path": "Offline/Mastebuilt Smoker Controller",
-  "name": "Mastebuilt Smoker Controller",
+  "path": "Offline/MasterBuilt%20Smoker%20Controller",
+  "name": "MasterBuilt Smoker Controller",
   "content": "",
   "created_at": "2025-06-02 22:56:56",
-  "updated_at": "2025-08-01 00:03:57",
+  "updated_at": "2025-08-01 21:53:23",
   "stick": "",
   "documents": [
     {
@@ -211,8 +211,8 @@
     {
       "uuid": "66543c7028c1e4b22c3b1631979944c7",
       "puuid": "48734c8482287ccb02120efe81ac97b6",
-      "title": "Controller PCB",
-      "filename": "Controller PCB.json",
+      "title": "Controller Board",
+      "filename": "Controller Board.json",
       "description": "",
       "docType": "3",
       "master": "",
@@ -285,16 +285,16 @@
           }
         ]
       ],
-      "updateTime": 1754031837,
+      "updateTime": 1754110403,
       "createTime": 1748981774,
       "histories": [],
       "created_at": "2025-06-03 13:16:14",
-      "updated_at": "2025-08-01 00:03:57"
+      "updated_at": "2025-08-01 21:53:23"
     }
   ],
   "sort": [],
-  "title": "Mastebuilt Smoker Controller",
-  "foldername": "Mastebuilt Smoker Controller",
-  "schfilename": "Mastebuilt Smoker Controller.json",
+  "title": "MasterBuilt Smoker Controller",
+  "foldername": "MasterBuilt Smoker Controller",
+  "schfilename": "MasterBuilt Smoker Controller.json",
   "schfilemtime": 1754031739713
 }
