@@ -1,0 +1,4 @@
+Circuit Notes
+
+See the ADS1115 breakout board circuit for use of ferrite beads on VCC and GND.
+
