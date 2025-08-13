@@ -1,9 +1,9 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
-#define LCD_SUPPORTED 1
-
+// #define LCD_SUPPORTED
 #ifdef LCD_SUPPORTED
+
 #include <TFT_eSPI.h>
 #include <lvgl.h>
 #include "ui/ui.h"

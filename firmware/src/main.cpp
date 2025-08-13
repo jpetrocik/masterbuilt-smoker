@@ -211,7 +211,9 @@ void init_WiFi()
     Serial.print(".");
     delay(1000);
   }
-  Serial.println(WiFi.localIP());
+  Serial.println(".");
+  Serial.print("Address: ");
+  Serial.println(WiFi.localIP().toString());
 }
 
 void notifyClients(String body)

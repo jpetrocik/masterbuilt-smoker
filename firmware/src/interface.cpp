@@ -1,5 +1,6 @@
 #include "interface.h"
 
+#ifdef LCD_SUPPORTED
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
 int cookTimeSeconds = 0;
@@ -36,10 +37,10 @@ void update_cook_time(lv_timer_t *timer)
 
     if (cookTimeHours > 2)
     {
-    ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
-                                           _ui_theme_color_Primary);
-    ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
-                                           _ui_theme_alpha_Primary);        
+        ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
+                                               _ui_theme_color_Primary);
+        ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
+                                               _ui_theme_alpha_Primary);
     }
 }
 
@@ -74,3 +75,4 @@ void lcd_update_temps(int temp, int probe1, int probe2, int probe3, int probe4)
     lv_label_set_text_fmt(ui_Probe3Label, "%d°", probe3);
     lv_label_set_text_fmt(ui_Probe4Label, "%d°", probe4);
 }
+#endif // LCD_SUPPORTED
