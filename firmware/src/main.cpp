@@ -15,6 +15,7 @@
 #include <PID_v1.h>
 #include <ArduinoOTA.h>
 #include <Adafruit_ADS1X15.h>
+#include "interface.h"
 
 #define SSID "PNET"
 #define PASSWORD "5626278472"
@@ -332,16 +333,16 @@ void setup(void)
   if (!ads1.begin())
   {
     Serial.println("Failed to initialize ADS1.");
-    while (1)
-      ;
   }
 
   if (!ads2.begin(0x49))
   {
     Serial.println("Failed to initialize ADS2.");
-    while (1)
-      ;
   }
+
+#ifdef LCD_SUPPORTED
+  init_interface();
+#endif // LCD_SUPPORTED
 }
 
 void loop(void)
@@ -422,5 +423,13 @@ void loop(void)
     serializeJson(tempData, jsonString);
 
     notifyClients(jsonString);
+
+#ifdef LCD_SUPPORTED
+    lcd_update_temps((int)toLocalTemperature(temperature), (int)toLocalTemperature(probe1),
+                     (int)toLocalTemperature(probe2), (int)toLocalTemperature(probe3),
+                     (int)toLocalTemperature(probe4));
+
+    lcd_task_handler();
+#endif // LCD_SUPPORTED
   }
 }
