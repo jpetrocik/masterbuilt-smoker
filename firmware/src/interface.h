@@ -1,7 +1,6 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
-// #define LCD_SUPPORTED
 #ifdef LCD_SUPPORTED
 
 #include <TFT_eSPI.h>
@@ -16,9 +15,8 @@
 /*LVGL draw into this buffer, 1/10 screen size usually works well. The size is in bytes*/
 #define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 10 * (LV_COLOR_DEPTH / 8))
 
-void lcd_init();
-void lcd_task_handler();
-void lcd_update_temps(int temp, int probe1, int probe2, int probe3, int probe4);
+void lcd_init(SmokerState *smokerState);
+void lcd_handler();
 
 #endif // LCD_SUPPORTED
 #endif // INTERFACE_H
