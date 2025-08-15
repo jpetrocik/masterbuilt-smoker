@@ -117,7 +117,6 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
   return calculate_Probe_SH_Value(resistance);
 }
 
-
 float calculate_Temperature_B_Value(uint32_t res)
 {
   // B value calculation
@@ -131,18 +130,21 @@ float calculate_Temperature_B_Value(uint32_t res)
   return bVale;
 }
 
-void handleWebSocketEvent(WebSocketAction action, String message)
+void handleCommandEvent(char *data)
 {
-  double newRequestedTargetTemp;
-  switch (action)
+
+  Serial.print("Recieved: ");
+  Serial.println(data);
+
+  if (strncmp(data, "setTemp=", 8) == 0)
   {
-  case TEMP:
     /**
      * When setting the temp to 0, stop cook timer.
      * When setting to temp from 0 to non-zero, start timer
      * Whene setting the temp from non-zero to non-zero, do nothing
      */
-    newRequestedTargetTemp = units_fromLocalTemperature(message.substring(8).toInt());
+
+    double newRequestedTargetTemp = units_fromLocalTemperature(atoi(&data[8]));
     if (newRequestedTargetTemp == 0.0)
     {
       currentSmokerState.cookTime = 0;
@@ -153,28 +155,49 @@ void handleWebSocketEvent(WebSocketAction action, String message)
     }
     currentSmokerState.targetTemperature = newRequestedTargetTemp;
     heatControlPid.SetMode(AUTOMATIC);
-    break;
-  case COOKTIME:
-    currentSmokerState.cookEndTime = millis() + (message.substring(12).toInt() * 60000l);
-    break;
-  case KP:
-    Kp = message.substring(6).toDouble();
+  }
+  else if (strncmp(data, "setKp=", 6) == 0)
+  {
+    Kp = atof(&data[6]);
     heatControlPid.SetTunings(Kp, Ki, Kd);
-    break;
-  case KD:
-    Kd = message.substring(6).toDouble();
+  }
+  else if (strncmp(data, "setKd=", 6) == 0)
+  {
+    Kd = atof(&data[6]);
     heatControlPid.SetTunings(Kp, Ki, Kd);
-    break;
-  case KI:
-    Ki = message.substring(6).toDouble();
+  }
+  else if (strncmp(data, "setKi=", 6) == 0)
+  {
+    Ki = atof(&data[6]);
     heatControlPid.SetTunings(Kp, Ki, Kd);
-    break;
-  case WIFI_CONNECTED:
+  }
+  else if (strncmp(data, "setCookTime=", 12) == 0)
+  {
+    currentSmokerState.cookEndTime = millis() + (atoi(&data[12]) * 60000l);
+  }
+  else if (strncmp(data, "setProbe1Label=", 15) == 0)
+  {
+    lcd_setProbeLabel(PROBE1, &data[15]);
+  }
+  else if (strncmp(data, "setProbe2Label=", 15) == 0)
+  {
+    lcd_setProbeLabel(PROBE2, &data[15]);
+  }
+  else if (strncmp(data, "setProbe3Label=", 15) == 0)
+  {
+    lcd_setProbeLabel(PROBE3, &data[15]);
+  }
+  else if (strncmp(data, "setProbe4Label=", 15) == 0)
+  {
+    lcd_setProbeLabel(PROBE4, &data[15]);
+  }
+  else if (strncmp(data, "wifiConnected", 13) == 0)
+  {
     lcd_wifiConnected();
-    break;
-  case WIFI_DISCONNECTED:
+  }
+  else if (strncmp(data, "wifiDisconnected", 16) == 0)
+  {
     lcd_wifiDisconnected();
-    break;
   }
 }
 
@@ -189,7 +212,7 @@ void setup(void)
   heatControlPid.SetOutputLimits(0, PID_WINDOW_SIZE);
   heatControlPid.SetMode(MANUAL);
 
-  ws_init(&currentSmokerState, handleWebSocketEvent);
+  ws_init(&currentSmokerState, handleCommandEvent);
 
   pinMode(HEAT_PIN, OUTPUT);
 

@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include "server.h"
 
 WiFiClient mqtt_wifiClient;
 PubSubClient mqtt_client(mqtt_wifiClient);
@@ -16,18 +17,24 @@ long mqtt_nextReconnectAttempt = 0;
 
 char clientId[25];
 
+CommandEventHandler mqtt_commandEventHandler;
+
 // callback when a mqtt message is recieved
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
-    // TODO use same callback from server.cpp
+    payload[length] = '\0';
+    mqtt_commandEventHandler((char *)payload);
 }
 
-void mqtt_init(WebSocketEventHandler webSocketEventHandler)
+void mqtt_init(CommandEventHandler commandEventHandler)
 {
     if (strlen(MQTT_SERVER) == 0 || mqtt_inited)
         return;
 
     mqtt_inited = true;
+
+    mqtt_commandEventHandler = commandEventHandler;
+
     uint64_t mac = ESP.getEfuseMac();
     uint32_t chipId = ((mac >> 40) & 0xFF) | (((mac >> 32) & 0xFF) << 8);
 

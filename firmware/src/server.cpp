@@ -28,7 +28,7 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 status_state *ws_currentState;
-WebSocketEventHandler ws_webSocketEventHandler;
+CommandEventHandler ws_commandEventHandler;
 long ws_lastClientNotify = 0;
 
 WifiAction ws_wifiAction = WifiAction::STARTING;
@@ -63,29 +63,8 @@ void ws_handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
     {
-        data[len] = 0;
-        String message = (char *)data;
-        Serial.print("Recieved: ");
-        Serial.println(message);
-        if (message.indexOf("setTemp=") >= 0)
-        {
-            ws_webSocketEventHandler(WebSocketAction::TEMP, message);
-        }
-        else if (message.indexOf("setKp=") >= 0)
-        {
-            ws_webSocketEventHandler(WebSocketAction::KP, message);
-        }
-        else if (message.indexOf("setKd=") >= 0)
-        {
-            ws_webSocketEventHandler(WebSocketAction::KD, message);
-        }
-        else if (message.indexOf("setKi=") >= 0)
-        {
-        }
-        else if (message.indexOf("setCookTime=") >= 0)
-        {
-            ws_webSocketEventHandler(WebSocketAction::COOKTIME, message);
-        }
+        data[len] = '\0';
+        ws_commandEventHandler((char *)data);
     }
 }
 
@@ -143,10 +122,10 @@ void ws_initOTAUpdates()
 }
 #endif // OTA_ENABLED
 
-void ws_init(status_state *state, WebSocketEventHandler webSocketEventHandler)
+void ws_init(status_state *state, CommandEventHandler commandEventHandler)
 {
     ws_currentState = state;
-    ws_webSocketEventHandler = webSocketEventHandler;
+    ws_commandEventHandler = commandEventHandler;
 
     // TODO Call back when connected to WiFi and setup WebSocket
     ws_initWiFi();
@@ -165,18 +144,18 @@ void ws_loop(long now)
 
     if (ws_wifiAction == WifiAction::CONNECTED)
     {
-        ws_webSocketEventHandler(WebSocketAction::WIFI_CONNECTED, "");
+        ws_commandEventHandler((char*)"wifiConnected");
         ws_wifiAction = WifiAction::STABLE;
 
 #ifdef MQTT_ENABLED
-    mqtt_init();
+    mqtt_init(ws_commandEventHandler);
 #endif
 
     }
 
     if (ws_wifiAction == WifiAction::DISCONNECTED)
     {
-        ws_webSocketEventHandler(WebSocketAction::WIFI_DISCONNECTED, "");
+        ws_commandEventHandler((char*)"wifiDiscounted");
         ws_initWiFi();
     }
 

@@ -42,9 +42,16 @@ void lcd_updateCookTime(lv_timer_t *timer)
     lcd_cookTimeHours = lcd_cookTimeMinutes / 60;  // Increment hours if minutes exceed 60
     lcd_cookTimeMinutes = lcd_cookTimeMinutes % 60; // Reset minutes to 0 if they exceed 60
 
-     // Since we are not displaying seconds we should the current full minute 1:32:24 should dusplay 1:33
+    // Add 1 minute to ensure we display the full minute until it passes: 1:32:24 should dusplay 1:33
+    lcd_cookTimeMinutes++;
+    if (lcd_cookTimeMinutes == 60)
+    {
+        lcd_cookTimeHours++;
+        lcd_cookTimeMinutes = 0;
+    }
+
     lv_label_set_text_fmt(ui_CookTimeHoursLabel, "%02d", lcd_cookTimeHours);     
-    lv_label_set_text_fmt(ui_CookTimeMinutesLabel, "%02d", lcd_cookTimeMinutes + 1);
+    lv_label_set_text_fmt(ui_CookTimeMinutesLabel, "%02d", lcd_cookTimeMinutes);
 
     if (lcd_toggleclockColon = !lcd_toggleclockColon)
     {
@@ -163,4 +170,22 @@ void lcd_wifiDisconnected(){
                                                _ui_theme_alpha_Light_Text);
 }
 
+void lcd_setProbeLabel(PROBE probe, char *label) {
+    switch (probe) {
+        case PROBE1:
+            lv_label_set_text(ui_Probe1Label, label);
+            break;
+        case PROBE2:
+            lv_label_set_text(ui_Probe2Label, label);
+            break;
+        case PROBE3:
+            lv_label_set_text(ui_Probe3Label, label);
+            break;
+        case PROBE4:
+            lv_label_set_text(ui_Probe4Label, label);
+            break;
+        default:
+            break;
+    }
+}
 #endif // LCD_SUPPORTED

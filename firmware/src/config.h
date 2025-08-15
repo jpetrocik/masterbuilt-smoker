@@ -32,7 +32,7 @@
 #define MQTT_SERVER "petrocik.net"
 #define MQTT_CLIENT_ID_PREFIX "smoker"
 #define MQTT_STATUS_TOPIC "smoker/%d/status"
-#define MQTT_COMMAND_TOPIC "smoker/%d/action"
+#define MQTT_COMMAND_TOPIC "smoker/%d/command"
 
 
 #endif // CONFIG_H

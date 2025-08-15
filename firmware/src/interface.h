@@ -16,10 +16,13 @@
 /*LVGL draw into this buffer, 1/10 screen size usually works well. The size is in bytes*/
 #define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 10 * (LV_COLOR_DEPTH / 8))
 
+enum PROBE { PROBE1, PROBE2, PROBE3, PROBE4 };
+
 void lcd_init(status_state *state);
 void lcd_loop();
 void lcd_wifiConnected();
 void lcd_wifiDisconnected();
+void lcd_setProbeLabel(PROBE probe, char *label);
 
 #endif // LCD_SUPPORTED
 #endif // INTERFACE_H

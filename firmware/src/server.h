@@ -3,7 +3,7 @@
 
 #include "status.h"
 
-enum WebSocketAction
+enum CommandAction
 {
     TEMP,
     COOKTIME,
@@ -11,12 +11,16 @@ enum WebSocketAction
     KD,
     KI,
     WIFI_CONNECTED,
-    WIFI_DISCONNECTED
+    WIFI_DISCONNECTED,
+    PROBE1_LABEL,
+    PROBE2_LABEL,
+    PROBE3_LABEL,
+    PROBE4_LABEL,
 };
 
-typedef void (*WebSocketEventHandler)(WebSocketAction action, String message);
+typedef void (*CommandEventHandler)(char* data);
 
-void ws_init(status_state *state, WebSocketEventHandler webSocketEventHandler);
+void ws_init(status_state *state, CommandEventHandler commandEventHandler);
 void ws_loop(long now);
 
 #endif // SERVER_H
