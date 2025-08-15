@@ -10,6 +10,15 @@
 #include "config.h"
 #include "server.h"
 
+enum WifiAction
+{
+    STARTING,
+    DISCONNECTED,
+    CONNECTING,
+    CONNECTED,
+    STABLE
+};
+
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
@@ -18,23 +27,25 @@ SmokerState *ws_smokerState;
 WebSocketEventHandler ws_webSocketEventHandler;
 long ws_lastClientNotify = 0;
 String ws_jsonStringBuffer;
+WifiAction ws_wifiAction = WifiAction::STARTING;
+
+void ws_wiFiEvent(WiFiEvent_t event);
 
 void ws_initWiFi()
 {
 
+    //Should only be in UNINIT state when first starting up
+    if (ws_wifiAction == WifiAction::STARTING)
+    {
+        WiFi.onEvent(ws_wiFiEvent);
+    }
+
+    ws_wifiAction = WifiAction::CONNECTING;
+
     WiFi.mode(WIFI_STA);
     WiFi.begin(SSID, PASSWORD);
     Serial.print("Attempting to connect to ");
-    Serial.print(SSID);
-    Serial.print(".");
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.print(".");
-        delay(1000);
-    }
-    Serial.println(".");
-    Serial.print("Address: ");
-    Serial.println(WiFi.localIP().toString());
+    Serial.println(SSID);
 }
 
 void ws_notifyClients(String body)
@@ -144,7 +155,7 @@ void ws_init(SmokerState *smokerState, WebSocketEventHandler webSocketEventHandl
 
     ws_jsonStringBuffer.reserve(512);
 
-    //TODO Call back when connected to WiFi and setup WebSocket
+    // TODO Call back when connected to WiFi and setup WebSocket
     ws_initWiFi();
 
     ws_initWebSocket();
@@ -159,6 +170,17 @@ void ws_init(SmokerState *smokerState, WebSocketEventHandler webSocketEventHandl
 void ws_handle(long now)
 {
 
+    if (ws_wifiAction == WifiAction::CONNECTED)
+    {
+        ws_webSocketEventHandler(WebSocketAction::WIFI_CONNECTED, "");
+        ws_wifiAction = WifiAction::STABLE;
+    }
+
+    if (ws_wifiAction == WifiAction::DISCONNECTED){
+        ws_webSocketEventHandler(WebSocketAction::WIFI_DISCONNECTED, "");
+        ws_initWiFi();
+    }
+
 #ifdef ENABLE_OTA
     ArduinoOTA.handle();
 #endif // ENABLE_OTA
@@ -169,7 +191,7 @@ void ws_handle(long now)
 
         ws_tempData["temperature"] = ws_smokerState->temperature;
         ws_tempData["targetTemperature"] = ws_smokerState->targetTemperature;
-        ws_tempData["cookTimer"] = ws_smokerState->cookEndTime > 0 ? (ws_smokerState->cookEndTime - now) / 1000: 0;
+        ws_tempData["cookTimer"] = ws_smokerState->cookEndTime > 0 ? (ws_smokerState->cookEndTime - now) / 1000 : 0;
 
         ws_tempData.remove("probe1");
         if (ws_smokerState->probe1 > 0.0)
@@ -198,5 +220,102 @@ void ws_handle(long now)
         serializeJson(ws_tempData, ws_jsonStringBuffer);
 
         ws_notifyClients(ws_jsonStringBuffer);
+    }
+}
+
+void ws_wiFiEvent(WiFiEvent_t event)
+{
+    Serial.printf("[WiFi-event] event: %d\n", event);
+
+    switch (event)
+    {
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        Serial.println("Disconnected from WiFi access point");
+        ws_wifiAction = WifiAction::DISCONNECTED;
+        break;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+        Serial.print("Connected to ");
+        Serial.println(SSID);
+        Serial.print("Obtained IP address: ");
+        Serial.println(WiFi.localIP());
+        ws_wifiAction = WifiAction::CONNECTED;
+        break;
+    case ARDUINO_EVENT_WIFI_READY:
+        Serial.println("WiFi interface ready");
+        break;
+    case ARDUINO_EVENT_WIFI_SCAN_DONE:
+        Serial.println("Completed scan for access points");
+        break;
+    case ARDUINO_EVENT_WIFI_STA_START:
+        Serial.println("WiFi client started");
+        break;
+    case ARDUINO_EVENT_WIFI_STA_STOP:
+        Serial.println("WiFi clients stopped");
+        break;
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        Serial.println("Connected to access point");
+        break;
+    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+        Serial.println("Authentication mode of access point has changed");
+        break;
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+        Serial.println("Lost IP address and IP address is reset to 0");
+        break;
+    case ARDUINO_EVENT_WPS_ER_SUCCESS:
+        Serial.println("WiFi Protected Setup (WPS): succeeded in enrollee mode");
+        break;
+    case ARDUINO_EVENT_WPS_ER_FAILED:
+        Serial.println("WiFi Protected Setup (WPS): failed in enrollee mode");
+        break;
+    case ARDUINO_EVENT_WPS_ER_TIMEOUT:
+        Serial.println("WiFi Protected Setup (WPS): timeout in enrollee mode");
+        break;
+    case ARDUINO_EVENT_WPS_ER_PIN:
+        Serial.println("WiFi Protected Setup (WPS): pin code in enrollee mode");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_START:
+        Serial.println("WiFi access point started");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_STOP:
+        Serial.println("WiFi access point  stopped");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+        Serial.println("Client connected");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+        Serial.println("Client disconnected");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+        Serial.println("Assigned IP address to client");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+        Serial.println("Received probe request");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_GOT_IP6:
+        Serial.println("AP IPv6 is preferred");
+        break;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+        Serial.println("STA IPv6 is preferred");
+        break;
+    case ARDUINO_EVENT_ETH_GOT_IP6:
+        Serial.println("Ethernet IPv6 is preferred");
+        break;
+    case ARDUINO_EVENT_ETH_START:
+        Serial.println("Ethernet started");
+        break;
+    case ARDUINO_EVENT_ETH_STOP:
+        Serial.println("Ethernet stopped");
+        break;
+    case ARDUINO_EVENT_ETH_CONNECTED:
+        Serial.println("Ethernet connected");
+        break;
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+        Serial.println("Ethernet disconnected");
+        break;
+    case ARDUINO_EVENT_ETH_GOT_IP:
+        Serial.println("Obtained IP address");
+        break;
+    default:
+        break;
     }
 }

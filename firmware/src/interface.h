@@ -17,6 +17,8 @@
 
 void lcd_init(SmokerState *smokerState);
 void lcd_handler();
+void lcd_wifiConnected();
+void lcd_wifiDisconnected();
 
 #endif // LCD_SUPPORTED
 #endif // INTERFACE_H

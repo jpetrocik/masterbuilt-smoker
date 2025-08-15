@@ -23,16 +23,26 @@ uint32_t lcd_tickProvider()
 
 void lcd_updateCookTime(lv_timer_t *timer)
 {
-    lcd_cookTimeSeconds += 1;
 
-    lcd_cookTimeMinutes += lcd_cookTimeSeconds / 60; // Increment minutes if seconds exceed 60
+    // No timer set, so we can not update the cook time
+    if (lcd_localSmokerState->cookEndTime == 0) {
+        lv_label_set_text(ui_CookTimeHoursLabel, "--");
+        lv_label_set_text(ui_CookTimeMinutesLabel, "--");
+        lv_label_set_text(ui_CookTimeSeperatorLabel, ":");
+        return;
+    }
+
+    lcd_cookTimeSeconds = (lcd_localSmokerState->cookEndTime - millis()) / 1000;
+
+    lcd_cookTimeMinutes = lcd_cookTimeSeconds / 60; // Increment minutes if seconds exceed 60
     lcd_cookTimeSeconds = lcd_cookTimeSeconds % 60;  // Reset seconds to 0 if
 
-    lcd_cookTimeHours += lcd_cookTimeMinutes / 60;  // Increment hours if minutes exceed 60
+    lcd_cookTimeHours = lcd_cookTimeMinutes / 60;  // Increment hours if minutes exceed 60
     lcd_cookTimeMinutes = lcd_cookTimeMinutes % 60; // Reset minutes to 0 if they exceed 60
 
-    lv_label_set_text_fmt(ui_CookTimeHoursLabel, "%02d", lcd_cookTimeHours);     // Update the label with the new temperature
-    lv_label_set_text_fmt(ui_CookTimeMinutesLabel, "%02d", lcd_cookTimeMinutes); // Update the label with the new temperature
+     // Since we are not displaying seconds we should the current full minute 1:32:24 should dusplay 1:33
+    lv_label_set_text_fmt(ui_CookTimeHoursLabel, "%02d", lcd_cookTimeHours);     
+    lv_label_set_text_fmt(ui_CookTimeMinutesLabel, "%02d", lcd_cookTimeMinutes + 1);
 
     if (lcd_toggleclockColon = !lcd_toggleclockColon)
     {
@@ -41,14 +51,6 @@ void lcd_updateCookTime(lv_timer_t *timer)
     else
     {
         lv_label_set_text(ui_CookTimeSeperatorLabel, " ");
-    }
-
-    if (lcd_cookTimeHours > 2)
-    {
-        ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
-                                               _ui_theme_color_Primary);
-        ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
-                                               _ui_theme_alpha_Primary);
     }
 }
 
@@ -153,6 +155,20 @@ void lcd_handler()
 {
     lcd_taskHandler();
     lcd_updateSmokerState();
+}
+
+void lcd_wifiConnected(){   
+        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
+                                               _ui_theme_color_Dark_Text);
+        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
+                                               _ui_theme_alpha_Dark_Text);
+}
+
+void lcd_wifiDisconnected(){   
+        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
+                                               _ui_theme_color_Light_Text);
+        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
+                                               _ui_theme_alpha_Light_Text);
 }
 
 #endif // LCD_SUPPORTED

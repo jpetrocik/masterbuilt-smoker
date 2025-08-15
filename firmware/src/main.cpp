@@ -176,6 +176,12 @@ void handleWebSocketEvent(WebSocketAction action, String message)
     Ki = message.substring(6).toDouble();
     heatControlPid.SetTunings(Kp, Ki, Kd);
     break;
+  case WIFI_CONNECTED:
+    lcd_wifiConnected();
+    break;
+  case WIFI_DISCONNECTED:
+    lcd_wifiDisconnected();
+    break;
   }
 }
 

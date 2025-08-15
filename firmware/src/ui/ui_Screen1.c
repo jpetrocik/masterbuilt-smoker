@@ -75,7 +75,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_width(ui_CookTempLabel, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_CookTempLabel, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_CookTempLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_CookTempLabel, "125°");
+    lv_label_set_text(ui_CookTempLabel, "---°");
     ui_object_set_themeable_style_property(ui_CookTempLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
                                            _ui_theme_color_Dark_Text);
     ui_object_set_themeable_style_property(ui_CookTempLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
@@ -112,9 +112,9 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_WifiLabel, LV_ALIGN_CENTER);
     lv_label_set_text(ui_WifiLabel, "");
     ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
-                                           _ui_theme_color_Dark_Text);
+                                           _ui_theme_color_Light_Text);
     ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
-                                           _ui_theme_alpha_Dark_Text);
+                                           _ui_theme_alpha_Light_Text);
     lv_obj_set_style_pad_left(ui_WifiLabel, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_right(ui_WifiLabel, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui_WifiLabel, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -133,7 +133,7 @@ void ui_Screen1_screen_init(void)
 
     ui_Probe1Container = lv_obj_create(ui_ProbeRow1Container);
     lv_obj_remove_style_all(ui_Probe1Container);
-    lv_obj_set_width(ui_Probe1Container, LV_SIZE_CONTENT);   /// 100
+    lv_obj_set_width(ui_Probe1Container, 57);
     lv_obj_set_height(ui_Probe1Container, LV_SIZE_CONTENT);    /// 74
     lv_obj_set_x(ui_Probe1Container, -5);
     lv_obj_set_y(ui_Probe1Container, 50);
@@ -165,10 +165,11 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_font(ui_Probe1Label, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Temp1Label = lv_label_create(ui_Probe1Container);
-    lv_obj_set_width(ui_Temp1Label, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_width(ui_Temp1Label, lv_pct(100));
     lv_obj_set_height(ui_Temp1Label, LV_SIZE_CONTENT);    /// 100
     lv_obj_set_align(ui_Temp1Label, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Temp1Label, "999°");
+    lv_label_set_text(ui_Temp1Label, "74°");
+    lv_obj_set_style_text_align(ui_Temp1Label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_Temp1Label, &lv_font_montserrat_22, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Spacer2 = lv_label_create(ui_ProbeRow1Container);
@@ -179,7 +180,7 @@ void ui_Screen1_screen_init(void)
 
     ui_Probe2Container = lv_obj_create(ui_ProbeRow1Container);
     lv_obj_remove_style_all(ui_Probe2Container);
-    lv_obj_set_width(ui_Probe2Container, LV_SIZE_CONTENT);   /// 100
+    lv_obj_set_width(ui_Probe2Container, 57);
     lv_obj_set_height(ui_Probe2Container, LV_SIZE_CONTENT);    /// 74
     lv_obj_set_x(ui_Probe2Container, -5);
     lv_obj_set_y(ui_Probe2Container, 50);
@@ -209,10 +210,11 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_font(ui_Probe2Label, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Temp2Label = lv_label_create(ui_Probe2Container);
-    lv_obj_set_width(ui_Temp2Label, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_width(ui_Temp2Label, lv_pct(100));
     lv_obj_set_height(ui_Temp2Label, LV_SIZE_CONTENT);    /// 100
     lv_obj_set_align(ui_Temp2Label, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Temp2Label, "999°");
+    lv_obj_set_style_text_align(ui_Temp2Label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_Temp2Label, &lv_font_montserrat_22, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_ProbeRow2Container = lv_obj_create(ui_MainContainer);
@@ -228,7 +230,7 @@ void ui_Screen1_screen_init(void)
 
     ui_Probe3Container = lv_obj_create(ui_ProbeRow2Container);
     lv_obj_remove_style_all(ui_Probe3Container);
-    lv_obj_set_width(ui_Probe3Container, LV_SIZE_CONTENT);   /// 100
+    lv_obj_set_width(ui_Probe3Container, 57);
     lv_obj_set_height(ui_Probe3Container, LV_SIZE_CONTENT);    /// 74
     lv_obj_set_x(ui_Probe3Container, -5);
     lv_obj_set_y(ui_Probe3Container, 50);
@@ -258,10 +260,11 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_font(ui_Probe3Label, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Temp3Label = lv_label_create(ui_Probe3Container);
-    lv_obj_set_width(ui_Temp3Label, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_width(ui_Temp3Label, lv_pct(100));
     lv_obj_set_height(ui_Temp3Label, LV_SIZE_CONTENT);    /// 100
     lv_obj_set_align(ui_Temp3Label, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Temp3Label, "999°");
+    lv_obj_set_style_text_align(ui_Temp3Label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_Temp3Label, &lv_font_montserrat_22, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Spacer3 = lv_label_create(ui_ProbeRow2Container);
@@ -272,7 +275,7 @@ void ui_Screen1_screen_init(void)
 
     ui_Probe4Container = lv_obj_create(ui_ProbeRow2Container);
     lv_obj_remove_style_all(ui_Probe4Container);
-    lv_obj_set_width(ui_Probe4Container, LV_SIZE_CONTENT);   /// 100
+    lv_obj_set_width(ui_Probe4Container, 57);
     lv_obj_set_height(ui_Probe4Container, LV_SIZE_CONTENT);    /// 74
     lv_obj_set_x(ui_Probe4Container, -5);
     lv_obj_set_y(ui_Probe4Container, 50);
@@ -302,10 +305,11 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_font(ui_Probe4Label, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Temp4Label = lv_label_create(ui_Probe4Container);
-    lv_obj_set_width(ui_Temp4Label, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_width(ui_Temp4Label, lv_pct(100));
     lv_obj_set_height(ui_Temp4Label, LV_SIZE_CONTENT);    /// 100
     lv_obj_set_align(ui_Temp4Label, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Temp4Label, "999°");
+    lv_obj_set_style_text_align(ui_Temp4Label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_Temp4Label, &lv_font_montserrat_22, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_TempContainer = lv_obj_create(ui_MainContainer);
@@ -331,7 +335,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_width(ui_CookTimeLabel, LV_SIZE_CONTENT);   /// 100
     lv_obj_set_height(ui_CookTimeLabel, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_CookTimeLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_CookTimeLabel, "Cook Time");
+    lv_label_set_text(ui_CookTimeLabel, "Cook Timer");
     lv_obj_set_style_text_font(ui_CookTimeLabel, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Container1 = lv_obj_create(ui_TempContainer);
@@ -352,7 +356,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_width(ui_CookTimeHoursLabel, 28);
     lv_obj_set_height(ui_CookTimeHoursLabel, LV_SIZE_CONTENT);    /// 100
     lv_obj_set_align(ui_CookTimeHoursLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_CookTimeHoursLabel, "00");
+    lv_label_set_text(ui_CookTimeHoursLabel, "--");
     lv_obj_set_style_text_align(ui_CookTimeHoursLabel, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_CookTimeSeperatorLabel = lv_label_create(ui_Container1);
@@ -361,12 +365,16 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_CookTimeSeperatorLabel, LV_ALIGN_CENTER);
     lv_label_set_text(ui_CookTimeSeperatorLabel, ":");
     lv_obj_set_style_text_align(ui_CookTimeSeperatorLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui_CookTimeSeperatorLabel, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui_CookTimeSeperatorLabel, 7, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(ui_CookTimeSeperatorLabel, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(ui_CookTimeSeperatorLabel, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_CookTimeMinutesLabel = lv_label_create(ui_Container1);
     lv_obj_set_width(ui_CookTimeMinutesLabel, 28);
     lv_obj_set_height(ui_CookTimeMinutesLabel, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_CookTimeMinutesLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_CookTimeMinutesLabel, "00");
+    lv_label_set_text(ui_CookTimeMinutesLabel, "--");
     lv_obj_set_style_text_align(ui_CookTimeMinutesLabel, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 }
