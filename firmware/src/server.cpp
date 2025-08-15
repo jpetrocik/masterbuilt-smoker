@@ -2,13 +2,18 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
-
-#ifdef ENABLE_OTA
-#include <ArduinoOTA.h>
-#endif // ENABLE_OTA
-
 #include "config.h"
+
+#ifdef OTA_ENABLED
+#include <ArduinoOTA.h>
+#endif
+
+#ifdef MQTT_ENABLED
+#include "mqtt.h"
+#endif
+
 #include "server.h"
+#include "status.h"
 
 enum WifiAction
 {
@@ -22,11 +27,10 @@ enum WifiAction
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-JsonDocument ws_tempData;
-SmokerState *ws_smokerState;
+status_state *ws_currentState;
 WebSocketEventHandler ws_webSocketEventHandler;
 long ws_lastClientNotify = 0;
-String ws_jsonStringBuffer;
+
 WifiAction ws_wifiAction = WifiAction::STARTING;
 
 void ws_wiFiEvent(WiFiEvent_t event);
@@ -34,7 +38,7 @@ void ws_wiFiEvent(WiFiEvent_t event);
 void ws_initWiFi()
 {
 
-    //Should only be in UNINIT state when first starting up
+    // Should only be in UNINIT state when first starting up
     if (ws_wifiAction == WifiAction::STARTING)
     {
         WiFi.onEvent(ws_wiFiEvent);
@@ -43,12 +47,12 @@ void ws_initWiFi()
     ws_wifiAction = WifiAction::CONNECTING;
 
     WiFi.mode(WIFI_STA);
-    WiFi.begin(SSID, PASSWORD);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Attempting to connect to ");
-    Serial.println(SSID);
+    Serial.println(WIFI_SSID);
 }
 
-void ws_notifyClients(String body)
+void ws_notifyClients(char *body)
 {
     Serial.println("Notifying all clients");
     ws.textAll(body);
@@ -108,7 +112,7 @@ void ws_initWebSocket()
     server.addHandler(&ws);
 }
 
-#ifdef ENABLE_OTA
+#ifdef OTA_ENABLED
 void ws_initOTAUpdates()
 {
     Serial.println("Enabling OTA Updates");
@@ -137,95 +141,68 @@ void ws_initOTAUpdates()
     else if (error == OTA_END_ERROR) Serial.println("End Failed"); });
     ArduinoOTA.begin();
 }
-#endif // ENABLE_OTA
+#endif // OTA_ENABLED
 
-void ws_init(SmokerState *smokerState, WebSocketEventHandler webSocketEventHandler)
+void ws_init(status_state *state, WebSocketEventHandler webSocketEventHandler)
 {
-    ws_smokerState = smokerState;
+    ws_currentState = state;
     ws_webSocketEventHandler = webSocketEventHandler;
-
-    ws_tempData.clear();
-    ws_tempData["temperature"] = 0;
-    ws_tempData["targetTemperature"] = 0;
-    ws_tempData["cookTimer"] = 0;
-    ws_tempData["probe1"] = 0;
-    ws_tempData["probe2"] = 0;
-    ws_tempData["probe3"] = 0;
-    ws_tempData["probe4"] = 0;
-
-    ws_jsonStringBuffer.reserve(512);
 
     // TODO Call back when connected to WiFi and setup WebSocket
     ws_initWiFi();
 
     ws_initWebSocket();
 
-#ifdef ENABLE_OTA
+#ifdef OTA_ENABLED
     ws_initOTAUpdates();
-#endif // ENABLE_OTA
+#endif // OTA_ENABLED
 
     server.begin();
 }
 
-void ws_handle(long now)
+void ws_loop(long now)
 {
 
     if (ws_wifiAction == WifiAction::CONNECTED)
     {
         ws_webSocketEventHandler(WebSocketAction::WIFI_CONNECTED, "");
         ws_wifiAction = WifiAction::STABLE;
+
+#ifdef MQTT_ENABLED
+    mqtt_init();
+#endif
+
     }
 
-    if (ws_wifiAction == WifiAction::DISCONNECTED){
+    if (ws_wifiAction == WifiAction::DISCONNECTED)
+    {
         ws_webSocketEventHandler(WebSocketAction::WIFI_DISCONNECTED, "");
         ws_initWiFi();
     }
 
-#ifdef ENABLE_OTA
+#ifdef OTA_ENABLED
     ArduinoOTA.handle();
-#endif // ENABLE_OTA
+#endif
+
+#ifdef MQTT_ENABLED
+    mqtt_loop();
+#endif
 
     if (now - ws_lastClientNotify > 5000)
     {
         ws_lastClientNotify = now;
 
-        ws_tempData["temperature"] = ws_smokerState->temperature;
-        ws_tempData["targetTemperature"] = ws_smokerState->targetTemperature;
-        ws_tempData["cookTimer"] = ws_smokerState->cookEndTime > 0 ? (ws_smokerState->cookEndTime - now) / 1000 : 0;
-
-        ws_tempData.remove("probe1");
-        if (ws_smokerState->probe1 > 0.0)
-        {
-            ws_tempData["probe1"] = ws_smokerState->probe1;
-        }
-
-        ws_tempData.remove("probe2");
-        if (ws_smokerState->probe2 > 0.0)
-        {
-            ws_tempData["probe2"] = ws_smokerState->probe2;
-        }
-
-        ws_tempData.remove("probe3");
-        if (ws_smokerState->probe3 > 0.0)
-        {
-            ws_tempData["probe1"] = ws_smokerState->probe3;
-        }
-
-        ws_tempData.remove("probe4");
-        if (ws_smokerState->probe4 > 0.0)
-        {
-            ws_tempData["probe4"] = ws_smokerState->probe4;
-        }
-
-        serializeJson(ws_tempData, ws_jsonStringBuffer);
-
-        ws_notifyClients(ws_jsonStringBuffer);
+        char *jsonString = statusJson(ws_currentState);
+        ws_notifyClients(jsonString);
+#ifdef MQTT_ENABLED
+        mqtt_sendStatus(jsonString);
+#endif
     }
 }
 
 void ws_wiFiEvent(WiFiEvent_t event)
 {
-    Serial.printf("[WiFi-event] event: %d\n", event);
+    // Serial.printf("[WiFi-event] event: %d\n", event);
 
     switch (event)
     {
@@ -235,86 +212,86 @@ void ws_wiFiEvent(WiFiEvent_t event)
         break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
         Serial.print("Connected to ");
-        Serial.println(SSID);
+        Serial.println(WIFI_SSID);
         Serial.print("Obtained IP address: ");
         Serial.println(WiFi.localIP());
         ws_wifiAction = WifiAction::CONNECTED;
         break;
-    case ARDUINO_EVENT_WIFI_READY:
-        Serial.println("WiFi interface ready");
-        break;
-    case ARDUINO_EVENT_WIFI_SCAN_DONE:
-        Serial.println("Completed scan for access points");
-        break;
-    case ARDUINO_EVENT_WIFI_STA_START:
-        Serial.println("WiFi client started");
-        break;
-    case ARDUINO_EVENT_WIFI_STA_STOP:
-        Serial.println("WiFi clients stopped");
-        break;
-    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-        Serial.println("Connected to access point");
-        break;
-    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-        Serial.println("Authentication mode of access point has changed");
-        break;
-    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        Serial.println("Lost IP address and IP address is reset to 0");
-        break;
-    case ARDUINO_EVENT_WPS_ER_SUCCESS:
-        Serial.println("WiFi Protected Setup (WPS): succeeded in enrollee mode");
-        break;
-    case ARDUINO_EVENT_WPS_ER_FAILED:
-        Serial.println("WiFi Protected Setup (WPS): failed in enrollee mode");
-        break;
-    case ARDUINO_EVENT_WPS_ER_TIMEOUT:
-        Serial.println("WiFi Protected Setup (WPS): timeout in enrollee mode");
-        break;
-    case ARDUINO_EVENT_WPS_ER_PIN:
-        Serial.println("WiFi Protected Setup (WPS): pin code in enrollee mode");
-        break;
-    case ARDUINO_EVENT_WIFI_AP_START:
-        Serial.println("WiFi access point started");
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STOP:
-        Serial.println("WiFi access point  stopped");
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
-        Serial.println("Client connected");
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
-        Serial.println("Client disconnected");
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
-        Serial.println("Assigned IP address to client");
-        break;
-    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
-        Serial.println("Received probe request");
-        break;
-    case ARDUINO_EVENT_WIFI_AP_GOT_IP6:
-        Serial.println("AP IPv6 is preferred");
-        break;
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
-        Serial.println("STA IPv6 is preferred");
-        break;
-    case ARDUINO_EVENT_ETH_GOT_IP6:
-        Serial.println("Ethernet IPv6 is preferred");
-        break;
-    case ARDUINO_EVENT_ETH_START:
-        Serial.println("Ethernet started");
-        break;
-    case ARDUINO_EVENT_ETH_STOP:
-        Serial.println("Ethernet stopped");
-        break;
-    case ARDUINO_EVENT_ETH_CONNECTED:
-        Serial.println("Ethernet connected");
-        break;
-    case ARDUINO_EVENT_ETH_DISCONNECTED:
-        Serial.println("Ethernet disconnected");
-        break;
-    case ARDUINO_EVENT_ETH_GOT_IP:
-        Serial.println("Obtained IP address");
-        break;
+    // case ARDUINO_EVENT_WIFI_READY:
+    //     Serial.println("WiFi interface ready");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_SCAN_DONE:
+    //     Serial.println("Completed scan for access points");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_STA_START:
+    //     Serial.println("WiFi client started");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_STA_STOP:
+    //     Serial.println("WiFi clients stopped");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+    //     Serial.println("Connected to access point");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+    //     Serial.println("Authentication mode of access point has changed");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+    //     Serial.println("Lost IP address and IP address is reset to 0");
+    //     break;
+    // case ARDUINO_EVENT_WPS_ER_SUCCESS:
+    //     Serial.println("WiFi Protected Setup (WPS): succeeded in enrollee mode");
+    //     break;
+    // case ARDUINO_EVENT_WPS_ER_FAILED:
+    //     Serial.println("WiFi Protected Setup (WPS): failed in enrollee mode");
+    //     break;
+    // case ARDUINO_EVENT_WPS_ER_TIMEOUT:
+    //     Serial.println("WiFi Protected Setup (WPS): timeout in enrollee mode");
+    //     break;
+    // case ARDUINO_EVENT_WPS_ER_PIN:
+    //     Serial.println("WiFi Protected Setup (WPS): pin code in enrollee mode");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_AP_START:
+    //     Serial.println("WiFi access point started");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_AP_STOP:
+    //     Serial.println("WiFi access point  stopped");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+    //     Serial.println("Client connected");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+    //     Serial.println("Client disconnected");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+    //     Serial.println("Assigned IP address to client");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+    //     Serial.println("Received probe request");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_AP_GOT_IP6:
+    //     Serial.println("AP IPv6 is preferred");
+    //     break;
+    // case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+    //     Serial.println("STA IPv6 is preferred");
+    //     break;
+    // case ARDUINO_EVENT_ETH_GOT_IP6:
+    //     Serial.println("Ethernet IPv6 is preferred");
+    //     break;
+    // case ARDUINO_EVENT_ETH_START:
+    //     Serial.println("Ethernet started");
+    //     break;
+    // case ARDUINO_EVENT_ETH_STOP:
+    //     Serial.println("Ethernet stopped");
+    //     break;
+    // case ARDUINO_EVENT_ETH_CONNECTED:
+    //     Serial.println("Ethernet connected");
+    //     break;
+    // case ARDUINO_EVENT_ETH_DISCONNECTED:
+    //     Serial.println("Ethernet disconnected");
+    //     break;
+    // case ARDUINO_EVENT_ETH_GOT_IP:
+    //     Serial.println("Obtained IP address");
+    //     break;
     default:
         break;
     }

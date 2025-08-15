@@ -14,6 +14,8 @@
 // #include "esp_adc_cal.h"
 #include "server.h"
 #include "interface.h"
+#include "status.h"
+#include "units.h"
 
 double Kp = 300, Ki = 0.05, Kd = 150;
 
@@ -35,7 +37,7 @@ bool abortError = false;
 int16_t reading;
 uint32_t voltage;
 uint32_t resistance;
-SmokerState currentSmokerState;
+status_state currentSmokerState;
 long lastProbeRead;
 
 // PID variables
@@ -115,15 +117,6 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
   return calculate_Probe_SH_Value(resistance);
 }
 
-double fromLocalTemperature(double value)
-{
-#ifndef FERINHEIT
-  return value;
-#endif
-#ifdef FERINHEIT
-  return (value - 32) / 1.8;
-#endif
-}
 
 float calculate_Temperature_B_Value(uint32_t res)
 {
@@ -149,7 +142,7 @@ void handleWebSocketEvent(WebSocketAction action, String message)
      * When setting to temp from 0 to non-zero, start timer
      * Whene setting the temp from non-zero to non-zero, do nothing
      */
-    newRequestedTargetTemp = fromLocalTemperature(message.substring(8).toInt());
+    newRequestedTargetTemp = units_fromLocalTemperature(message.substring(8).toInt());
     if (newRequestedTargetTemp == 0.0)
     {
       currentSmokerState.cookTime = 0;
@@ -188,6 +181,8 @@ void handleWebSocketEvent(WebSocketAction action, String message)
 void setup(void)
 {
   Serial.begin(115200);
+
+  status_init();
 
   windowStartTime = millis();
 
@@ -269,9 +264,9 @@ void loop(void)
     computePID();
   }
 
-  ws_handle(now);
+  ws_loop(now);
 
 #ifdef LCD_SUPPORTED
-  lcd_handler();
+  lcd_loop();
 #endif // LCD_SUPPORTED
 }

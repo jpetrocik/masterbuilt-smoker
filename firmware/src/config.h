@@ -1,8 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define SSID "PNET2"
-#define PASSWORD "5626278472"
+#define WIFI_SSID "PNET2"
+#define WIFI_PASSWORD "5626278472"
 
 #define LCD_SUPPORTED  // Uncomment to enable LCD support
 
@@ -28,23 +28,11 @@
 
 #define FERINHEIT // Uncomment to use Fahrenheit instead of Celsius
 
+#define MQTT_ENABLED
 #define MQTT_SERVER "petrocik.net"
 #define MQTT_CLIENT_ID_PREFIX "smoker"
-#define MQTT_PUBLISH_TOPIC "smoker/status"
-#define MQTT_SUBSCRIBE_TOPIC "smoker/action"
+#define MQTT_STATUS_TOPIC "smoker/%d/status"
+#define MQTT_COMMAND_TOPIC "smoker/%d/action"
 
-#define MQTT_ENABLED
-
-// current state
-struct SmokerState {
-  double temperature = 0;
-  double probe1 = 0;
-  double probe2 = 0;
-  double probe3 = 0;
-  double probe4 = 0;
-  double targetTemperature = 0;
-  long cookEndTime = 0;
-  long cookTime = 0;
-};
 
 #endif // CONFIG_H

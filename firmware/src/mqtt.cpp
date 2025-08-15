@@ -7,6 +7,9 @@
 
 WiFiClient mqtt_wifiClient;
 PubSubClient mqtt_client(mqtt_wifiClient);
+char *mqtt_statusTopic;
+char *mqtt_commandTopic;
+bool mqtt_inited = false;
 
 int mqtt_reconnectAttemptCounter = 0;
 long mqtt_nextReconnectAttempt = 0;
@@ -16,23 +19,30 @@ char clientId[25];
 // callback when a mqtt message is recieved
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
-    //TODO use same callback from server.cpp
+    // TODO use same callback from server.cpp
 }
 
-void mqtt_setup()
+void mqtt_init(WebSocketEventHandler webSocketEventHandler)
 {
-    if (strlen(MQTT_SERVER) == 0)
+    if (strlen(MQTT_SERVER) == 0 || mqtt_inited)
         return;
 
+    mqtt_inited = true;
     uint64_t mac = ESP.getEfuseMac();
     uint32_t chipId = ((mac >> 40) & 0xFF) | (((mac >> 32) & 0xFF) << 8);
+
     snprintf(clientId, sizeof(clientId), "%s%d", MQTT_CLIENT_ID_PREFIX, chipId);
+
+    mqtt_statusTopic = (char *)malloc(strlen(MQTT_STATUS_TOPIC) + 5 /*chipId*/ + 1 /*null*/);
+    sprintf(mqtt_statusTopic, MQTT_STATUS_TOPIC, chipId);
+
+    mqtt_commandTopic = (char *)malloc(strlen(MQTT_COMMAND_TOPIC) + 5 /*chipId*/ + 1) /*null*/;
+    sprintf(mqtt_commandTopic, MQTT_COMMAND_TOPIC, chipId);
 
     Serial.println("Connecting to MQTT Server....");
     mqtt_client.setServer(MQTT_SERVER, 1883);
     mqtt_client.setCallback(mqtt_callback);
     //  mqtt_client.setKeepAlive(120);
-
 }
 
 void mqtt_connect()
@@ -43,7 +53,7 @@ void mqtt_connect()
         if (mqtt_client.connect(clientId))
         {
             Serial.println("Connected to MQTT Server");
-            mqtt_client.subscribe(MQTT_SUBSCRIBE_TOPIC);
+            mqtt_client.subscribe(mqtt_commandTopic);
 
             mqtt_reconnectAttemptCounter = 0;
             mqtt_nextReconnectAttempt = 0;
@@ -79,12 +89,11 @@ void mqtt_loop()
     }
 }
 
-void mqtt_sendStatus()
+void mqtt_sendStatus(char *jsonStatusMsg)
 {
     if (mqtt_client.connected())
     {
-        //TODO construct same json as server.cpp
-        mqtt_client.publish(MQTT_PUBLISH_TOPIC, (char *)jsonStatusMsg);
+        mqtt_client.publish(mqtt_statusTopic, (char *)jsonStatusMsg);
     }
 }
 #endif

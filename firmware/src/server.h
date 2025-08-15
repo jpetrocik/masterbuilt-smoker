@@ -1,6 +1,8 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include "status.h"
+
 enum WebSocketAction
 {
     TEMP,
@@ -14,7 +16,7 @@ enum WebSocketAction
 
 typedef void (*WebSocketEventHandler)(WebSocketAction action, String message);
 
-void ws_init(SmokerState *smokerState, WebSocketEventHandler webSocketEventHandler);
-void ws_handle(long now);
+void ws_init(status_state *state, WebSocketEventHandler webSocketEventHandler);
+void ws_loop(long now);
 
 #endif // SERVER_H
