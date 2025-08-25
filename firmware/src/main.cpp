@@ -104,7 +104,15 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
 {
   reading = ads->readADC_SingleEnded(input);
 
+  Serial.println(reading);
+
   voltage = reading * 187500 / 1000000;
+
+  //TODO Handle missing probe
+  if (voltage == 0)
+  {
+    return 0.0; // avoid division by zero
+  }
 
   voltage = readADC_Avg(voltage, adc_buffer, adc_index_ptr);
 
@@ -175,6 +183,11 @@ void handleCommandEvent(char *data)
   {
     currentSmokerState.cookEndTime = millis() + (atoi(&data[12]) * 60000l);
   }
+  #ifdef LCD_SUPPORTED
+  else if (strncmp(data, "lcdUpdate", 9) == 0)
+  {
+    lcd_updateSmokerState();
+  }
   else if (strncmp(data, "setProbe1Label=", 15) == 0)
   {
     lcd_setProbeLabel(PROBE1, &data[15]);
@@ -199,6 +212,7 @@ void handleCommandEvent(char *data)
   {
     lcd_wifiDisconnected();
   }
+  #endif // LCD_SUPPORTED
 }
 
 void setup(void)
@@ -219,11 +233,13 @@ void setup(void)
   if (!ads1.begin())
   {
     Serial.println("Failed to initialize ADS1.");
+    abortError = true;
   }
 
   if (!ads2.begin(0x49))
   {
     Serial.println("Failed to initialize ADS2.");
+    abortError = true;
   }
 
   // TODO: perform sanity check on temp probe
@@ -238,6 +254,7 @@ void loop(void)
 
   if (abortError)
   {
+    Serial.println("Abort error!");
     digitalWrite(HEAT_PIN, LOW);
     return;
   }
@@ -273,11 +290,11 @@ void loop(void)
   // Reads probes every second
   if (now - lastProbeRead > 1000)
   {
-    // temperature = readTemperature(&ads1, 0, TEMP_SERIES_RESISTOR, temp_buffer, &temp_index);
+    currentSmokerState.temperature = readTemperature(&ads2, 1, TEMP_SERIES_RESISTOR, temp_buffer, &temp_index);
     currentSmokerState.probe1 = readTemperature(&ads1, 0, PROBE_SERIES_RESISTOR, probe1_buffer, &probe1_index);
-    // currentSmokerState.probe2 = readTemperature(&ads1, 2, PROBE_SERIES_RESISTOR, probe2_buffer, &probe2_index);
-    // currentSmokerState.probe3 = readTemperature(&ads1, 3, PROBE_SERIES_RESISTOR, probe3_buffer, &probe3_index);
-    // currentSmokerState.probe4 = readTemperature(&ads2, 0, PROBE_SERIES_RESISTOR, probe4_buffer, &probe4_index);
+    currentSmokerState.probe2 = readTemperature(&ads1, 1, PROBE_SERIES_RESISTOR, probe2_buffer, &probe2_index);
+    currentSmokerState.probe3 = readTemperature(&ads1, 2, PROBE_SERIES_RESISTOR, probe3_buffer, &probe3_index);
+    currentSmokerState.probe4 = readTemperature(&ads1, 3, PROBE_SERIES_RESISTOR, probe4_buffer, &probe4_index);
 
     lastProbeRead = now;
   }

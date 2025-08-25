@@ -41,7 +41,7 @@ char* statusJson(status_state *state)
     status_statusJson.remove("probe3");
     if (state->probe3 > 0.0)
     {
-        status_statusJson["probe1"] = units_toLocalTemperature(state->probe3);
+        status_statusJson["probe3"] = units_toLocalTemperature(state->probe3);
     }
 
     status_statusJson.remove("probe4");
