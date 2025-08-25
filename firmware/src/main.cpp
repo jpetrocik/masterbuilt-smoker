@@ -60,9 +60,15 @@ void computePID()
     windowStartTime = now;
 
   if (timeOn > now - windowStartTime)
+  {
     digitalWrite(HEAT_PIN, HIGH);
+    digitalWrite(LED_PIN, HIGH);
+  }
   else
+  {
     digitalWrite(HEAT_PIN, LOW);
+    digitalWrite(LED_PIN, LOW);
+  }
 }
 
 uint32_t readADC_Avg(uint16_t sample, uint16_t adc_buffer[], uint8_t *adc_index_ptr)
@@ -104,11 +110,9 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
 {
   reading = ads->readADC_SingleEnded(input);
 
-  Serial.println(reading);
+  voltage = reading * 187500ul / 1000000;
 
-  voltage = reading * 187500 / 1000000;
-
-  //TODO Handle missing probe
+  // TODO Handle missing probe
   if (voltage == 0)
   {
     return 0.0; // avoid division by zero
@@ -118,9 +122,6 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
 
   // Voltage is 3.3V, extra zeros are for additional precision during int math
   resistance = (series_resistor * (33000000 / voltage - 10000)) / 10000;
-
-  if (reading < 50)
-    return 0.0;
 
   return calculate_Probe_SH_Value(resistance);
 }
@@ -183,7 +184,7 @@ void handleCommandEvent(char *data)
   {
     currentSmokerState.cookEndTime = millis() + (atoi(&data[12]) * 60000l);
   }
-  #ifdef LCD_SUPPORTED
+#ifdef LCD_SUPPORTED
   else if (strncmp(data, "lcdUpdate", 9) == 0)
   {
     lcd_updateSmokerState();
@@ -212,7 +213,7 @@ void handleCommandEvent(char *data)
   {
     lcd_wifiDisconnected();
   }
-  #endif // LCD_SUPPORTED
+#endif // LCD_SUPPORTED
 }
 
 void setup(void)
@@ -229,6 +230,7 @@ void setup(void)
   ws_init(&currentSmokerState, handleCommandEvent);
 
   pinMode(HEAT_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
 
   if (!ads1.begin())
   {
@@ -259,9 +261,16 @@ void loop(void)
     return;
   }
 
+  if (currentSmokerState.temperature > ABORT_TEMP)
+  {
+    Serial.println("Tempature too high!");
+    abortError = true;
+  }
+
   now = millis();
 
-  // Checks for allowed max target temperature 135C (275F)
+  // TODO These should be controlled when set
+  //  Checks for allowed max target temperature 135C (275F)
   if (currentSmokerState.targetTemperature > MAX_TEMP)
   {
     Serial.println("Target temperature too high, turning off heating.");

@@ -19,6 +19,13 @@ char clientId[25];
 
 CommandEventHandler mqtt_commandEventHandler;
 
+uint32_t getChipId()
+{
+    uint64_t mac = ESP.getEfuseMac();
+    uint32_t chipId = ((mac >> 40) & 0xFF) | (((mac >> 32) & 0xFF) << 8);
+    return chipId;
+}
+
 // callback when a mqtt message is recieved
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
@@ -35,8 +42,7 @@ void mqtt_init(CommandEventHandler commandEventHandler)
 
     mqtt_commandEventHandler = commandEventHandler;
 
-    uint64_t mac = ESP.getEfuseMac();
-    uint32_t chipId = ((mac >> 40) & 0xFF) | (((mac >> 32) & 0xFF) << 8);
+    uint32_t chipId = getChipId();
 
     snprintf(clientId, sizeof(clientId), "%s%d", MQTT_CLIENT_ID_PREFIX, chipId);
 
@@ -61,6 +67,11 @@ void mqtt_connect()
         {
             Serial.println("Connected to MQTT Server");
             mqtt_client.subscribe(mqtt_commandTopic);
+
+            char buffer[100];
+            sprintf(buffer, "{\"chipId\":%i, \"ipAddress\":\"%s\"}", getChipId(), WiFi.localIP());
+
+            mqtt_client.publish(MQTT_DEVICE_TOPIC, buffer, true);
 
             mqtt_reconnectAttemptCounter = 0;
             mqtt_nextReconnectAttempt = 0;
@@ -100,7 +111,7 @@ void mqtt_sendStatus(char *jsonStatusMsg)
 {
     if (mqtt_client.connected())
     {
-        mqtt_client.publish(mqtt_statusTopic, (char *)jsonStatusMsg);
+        mqtt_client.publish(mqtt_statusTopic, (char *)jsonStatusMsg, true);
     }
 }
 #endif
