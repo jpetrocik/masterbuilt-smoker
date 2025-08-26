@@ -38,7 +38,7 @@ void ws_wiFiEvent(WiFiEvent_t event);
 void ws_initWiFi()
 {
 
-    // Should only be in UNINIT state when first starting up
+    // Should only be in STARTING state when first starting up
     if (ws_wifiAction == WifiAction::STARTING)
     {
         WiFi.onEvent(ws_wiFiEvent);
@@ -181,8 +181,6 @@ void ws_loop(long now)
 
 void ws_wiFiEvent(WiFiEvent_t event)
 {
-    // Serial.printf("[WiFi-event] event: %d\n", event);
-
     switch (event)
     {
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:

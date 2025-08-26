@@ -1,17 +1,7 @@
-// SPDX-FileCopyrightText: 2011 Limor Fried/ladyada for Adafruit Industries
-//
-// SPDX-License-Identifier: MIT
-
-// thermistor-1.ino Simple test program for a thermistor for Adafruit Learning System
-// https://learn.adafruit.com/thermistor/using-a-thermistor by Limor Fried, Adafruit Industries
-// MIT License - please keep attribution and consider buying parts from Adafruit
-
-// #include "driver/adc.h"
 #include <Arduino.h>
 #include <PID_v1.h>
 #include <Adafruit_ADS1X15.h>
 #include "config.h"
-// #include "esp_adc_cal.h"
 #include "server.h"
 #include "interface.h"
 #include "status.h"
@@ -264,8 +254,6 @@ void setup(void)
     abortError = true;
   }
 
-  // TODO: perform sanity check on temp probe
-
 #ifdef LCD_SUPPORTED
   lcd_init(&currentSmokerState);
 #endif // LCD_SUPPORTED
@@ -276,14 +264,13 @@ void loop(void)
 
   if (abortError)
   {
-    // Serial.println("Abort error!");
     digitalWrite(HEAT_PIN, LOW);
     return;
   }
 
   if (currentSmokerState.temperature > ABORT_TEMP)
   {
-    Serial.println("Tempature too high, aborting!");
+    Serial.println("Temperature too high, aborting!");
     abortError = true;
   }
 
