@@ -14,17 +14,29 @@
 #define HEAT_PIN 5
 #define LED_PIN 2 //TODO Consider adding LED to HEAT curcuit
 
-#define TEMP_A 0.0018973070382391657
-#define TEMP_B 0.000028062360019658755
-#define TEMP_C 9.298865188226613e-7
+//https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
+//  75f 48303ohm
+// 172f  8824ohm
+// 259f  1853ohm
+#define TEMP_A 1.934498636e-3
+#define TEMP_B 0.2199374955e-4
+#define TEMP_C 9.514088853e-7
+#define TEMP_BETA 3791.59
 
-#define PROBE_A 0.0008347965991908151
-#define PROBE_B 0.0001986718882689551
-#define PROBE_C 1.487238280483084e-7
+//https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
+//  75f  107021ohm
+// 172f   13354ohm
+// 259f   3038ohm
+#define PROBE_A 0.8741501404e-3
+#define PROBE_B 1.926411642e-4
+#define PROBE_C 1.675424292e-7
+#define PROBE_BETA 4141.75
 
 #define MIN_TEMP 37.0
 #define MAX_TEMP 135.0
 #define ABORT_TEMP 175.0
+
+// #define B_MODEL
 
 #define PID_WINDOW_SIZE 2000
 

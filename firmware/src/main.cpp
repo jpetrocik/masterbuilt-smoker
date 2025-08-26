@@ -106,6 +106,19 @@ float calculate_Probe_SH_Value(uint32_t res)
   return temp - 273.15; // convert Kelvin to *C
 }
 
+float calculate_Temperature_B_Value(uint32_t res, float b)
+{
+  // B value calculation
+  float bVale = res / 100000.0; // (R/Ro)
+  bVale = log(bVale);           // ln(R/Ro)
+  bVale /= b;                   // 1/B * ln(R/Ro)
+  bVale += 1.0 / (25 + 273.15); // + (1/To)
+  bVale = 1.0 / bVale;          // Invert
+  bVale -= 273.15;
+
+  return bVale;
+}
+
 double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resistor, uint16_t adc_buffer[], uint8_t *adc_index_ptr)
 {
   reading = ads->readADC_SingleEnded(input);
@@ -124,22 +137,21 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
   resistance = (series_resistor * (33000000 / voltage - 10000)) / 10000;
 
   if (ads == &ads1)
+  {
+#ifdef B_MODEL
+    return calculate_Temperature_B_Value(resistance, PROBE_BETA);
+#else
     return calculate_Probe_SH_Value(resistance);
+#endif
+  }
   else
+  {
+#ifdef B_MODEL
+    return calculate_Temperature_B_Value(resistance, TEMP_BETA);
+#else
     return calculate_Temperature_SH_Value(resistance);
-}
-
-float calculate_Temperature_B_Value(uint32_t res)
-{
-  // B value calculation
-  float bVale = res / 100000.0; // (R/Ro)
-  bVale = log(bVale);           // ln(R/Ro)
-  bVale /= 4400;                // 1/B * ln(R/Ro)
-  bVale += 1.0 / (25 + 273.15); // + (1/To)
-  bVale = 1.0 / bVale;          // Invert
-  bVale -= 273.15;
-
-  return bVale;
+#endif
+  }
 }
 
 void handleCommandEvent(char *data)
@@ -150,13 +162,18 @@ void handleCommandEvent(char *data)
 
   if (strncmp(data, "setTemp=", 8) == 0)
   {
+
+    double newRequestedTargetTemp = units_fromLocalTemperature(atoi(&data[8]));
+    if (newRequestedTargetTemp < MIN_TEMP || newRequestedTargetTemp > MAX_TEMP)
+    {
+      return;
+    }
+
     /**
      * When setting the temp to 0, stop cook timer.
      * When setting to temp from 0 to non-zero, start timer
      * Whene setting the temp from non-zero to non-zero, do nothing
      */
-
-    double newRequestedTargetTemp = units_fromLocalTemperature(atoi(&data[8]));
     if (newRequestedTargetTemp == 0.0)
     {
       currentSmokerState.cookTime = 0;
@@ -259,35 +276,18 @@ void loop(void)
 
   if (abortError)
   {
-    Serial.println("Abort error!");
+    // Serial.println("Abort error!");
     digitalWrite(HEAT_PIN, LOW);
     return;
   }
 
   if (currentSmokerState.temperature > ABORT_TEMP)
   {
-    Serial.println("Tempature too high!");
+    Serial.println("Tempature too high, aborting!");
     abortError = true;
   }
 
   now = millis();
-
-  // TODO These should be controlled when set
-  //  Checks for allowed max target temperature 135C (275F)
-  if (currentSmokerState.targetTemperature > MAX_TEMP)
-  {
-    Serial.println("Target temperature too high, turning off heating.");
-    currentSmokerState.targetTemperature = 0;
-    digitalWrite(HEAT_PIN, LOW);
-  }
-
-  // Checks for allowed min target temperature 37C (98.6F)
-  if (currentSmokerState.targetTemperature < MIN_TEMP)
-  {
-    // Serial.println("Target temperature too low, turning off heating.");
-    currentSmokerState.targetTemperature = 0;
-    digitalWrite(HEAT_PIN, LOW);
-  }
 
   // Checks for cook time exceeded and reset target temperature
   if (currentSmokerState.cookEndTime > 0 && currentSmokerState.cookEndTime < now)
@@ -299,8 +299,8 @@ void loop(void)
     timeOn = 0;
   }
 
-  // Reads probes every second
-  if (now - lastProbeRead > 1000)
+  // Reads probes every half second
+  if (now - lastProbeRead > 500)
   {
     currentSmokerState.temperature = readTemperature(&ads2, 1, TEMP_SERIES_RESISTOR, temp_buffer, &temp_index);
     currentSmokerState.probe1 = readTemperature(&ads1, 0, PROBE_SERIES_RESISTOR, probe1_buffer, &probe1_index);
