@@ -63,14 +63,13 @@ void mqtt_connect()
     if (!mqtt_client.connected() && mqtt_nextReconnectAttempt < millis())
     {
 
-        if (mqtt_client.connect(clientId))
+        if (mqtt_client.connect(clientId, MQTT_DEVICE_TOPIC, 0, true, ""))
         {
             Serial.println("Connected to MQTT Server");
             mqtt_client.subscribe(mqtt_commandTopic);
 
             char buffer[100];
-            sprintf(buffer, "{\"chipId\":%i, \"ipAddress\":\"%s\"}", getChipId(), WiFi.localIP());
-
+            sprintf(buffer, "{\"chipId\":%i, \"ipAddress\":\"%s\"}", getChipId(), WiFi.localIP().toString());
             mqtt_client.publish(MQTT_DEVICE_TOPIC, buffer, true);
 
             mqtt_reconnectAttemptCounter = 0;
