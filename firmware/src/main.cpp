@@ -123,7 +123,10 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
   // Voltage is 3.3V, extra zeros are for additional precision during int math
   resistance = (series_resistor * (33000000 / voltage - 10000)) / 10000;
 
-  return calculate_Probe_SH_Value(resistance);
+  if (ads == &ads1)
+    return calculate_Probe_SH_Value(resistance);
+  else
+    return calculate_Temperature_SH_Value(resistance);
 }
 
 float calculate_Temperature_B_Value(uint32_t res)
