@@ -115,11 +115,11 @@ void mqtt_sendStatus(const char *jsonStatusMsg)
     }
 }
 
-void mqtt_sendMessage(const char *topic, const char *jsonStatusMsg)
+void mqtt_sendMessage(const char *topic, const char *jsonStatusMsg, boolean retain)
 {
     if (mqtt_client.connected())
     {
-        mqtt_client.publish(topic, jsonStatusMsg);
+        mqtt_client.publish(topic, jsonStatusMsg, retain);
     }
 }
 
