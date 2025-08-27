@@ -5,6 +5,7 @@
 #define WIFI_PASSWORD "5626278472"
 
 //#define LCD_SUPPORTED  // Uncomment to enable LCD support
+#define OTA_ENABLED
 
 #define ADC_SAMPLE_SIZE 10
 
@@ -15,21 +16,21 @@
 #define LED_PIN 2 //TODO Consider adding LED to HEAT curcuit
 
 //https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
-//  75f 48303ohm
-// 172f  8824ohm
-// 259f  1853ohm
-#define TEMP_A 1.934498636e-3
-#define TEMP_B 0.2199374955e-4
-#define TEMP_C 9.514088853e-7
-#define TEMP_BETA 3791.59
+//  22c 56000ohm
+//  78c  8824ohm
+// 137c  1510ohm
+#define TEMP_A 1.406113720e-3
+#define TEMP_B 1.082527324e-4
+#define TEMP_C 6.109699157e-7
+#define TEMP_BETA 3419.95
 
 //https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
-//  75f  107021ohm
-// 172f   13354ohm
-// 259f   3038ohm
-#define PROBE_A 0.8741501404e-3
-#define PROBE_B 1.926411642e-4
-#define PROBE_C 1.675424292e-7
+//  24c  107021ohm
+//  78c  13354ohm
+// 137c   2581ohm
+#define PROBE_A 0.4732619361e-3
+#define PROBE_B 2.504413606e-4
+#define PROBE_C -0.05321188939e-7
 #define PROBE_BETA 4141.75
 
 #define MIN_TEMP 37.0
@@ -47,7 +48,12 @@
 #define MQTT_CLIENT_ID_PREFIX "smoker"
 #define MQTT_STATUS_TOPIC "smoker/%d/status"
 #define MQTT_COMMAND_TOPIC "smoker/%d/command"
+#define MQTT_DEBUG_TOPIC "smoker/%d/debug"
 #define MQTT_DEVICE_TOPIC "smoker/device"
 
+#define ADS1 1
+#define ADS2 2
+
+#define DEBUG_PROBE
 
 #endif // CONFIG_H

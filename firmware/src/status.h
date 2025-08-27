@@ -1,6 +1,8 @@
 #ifndef STATUS_H
 #define STATUS_H
 
+#include <Arduino.h>
+
 // current state
 struct status_state {
   double temperature = 0;
@@ -14,6 +16,6 @@ struct status_state {
 }; 
 
 void status_init();
-char* statusJson(status_state *state);
+char* status_stateJson(status_state *state);
 
 #endif

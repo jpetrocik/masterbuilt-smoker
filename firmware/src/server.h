@@ -23,4 +23,5 @@ typedef void (*CommandEventHandler)(char* data);
 void ws_init(status_state *state, CommandEventHandler commandEventHandler);
 void ws_loop(long now);
 
+
 #endif // SERVER_H

@@ -6,6 +6,7 @@
 #include "interface.h"
 #include "status.h"
 #include "units.h"
+#include "debug.h"
 
 double Kp = 300, Ki = 0.05, Kd = 150;
 
@@ -37,6 +38,11 @@ PID heatControlPid(&currentSmokerState.temperature, &timeOn, &currentSmokerState
 
 Adafruit_ADS1115 ads1;
 Adafruit_ADS1115 ads2;
+
+char debugBuffer[100];
+uint32_t resistance1;
+uint32_t resistance2;
+u_int32_t resistance3;
 
 void computePID()
 {
@@ -111,6 +117,8 @@ float calculate_Temperature_B_Value(uint32_t res, float b)
 
 double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resistor, uint16_t adc_buffer[], uint8_t *adc_index_ptr)
 {
+  int adsDeviceNumber = ads == &ads1 ? ADS1 : ADS2;
+
   reading = ads->readADC_SingleEnded(input);
 
   voltage = reading * 187500ul / 1000000;
@@ -126,22 +134,29 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
   // Voltage is 3.3V, extra zeros are for additional precision during int math
   resistance = (series_resistor * (33000000 / voltage - 10000)) / 10000;
 
-  if (ads == &ads1)
+  double temperature = 0;
+  if (adsDeviceNumber == ADS1)
   {
 #ifdef B_MODEL
-    return calculate_Temperature_B_Value(resistance, PROBE_BETA);
+    temperature = calculate_Temperature_B_Value(resistance, PROBE_BETA);
 #else
-    return calculate_Probe_SH_Value(resistance);
+    temperature = calculate_Probe_SH_Value(resistance);
 #endif
   }
   else
   {
 #ifdef B_MODEL
-    return calculate_Temperature_B_Value(resistance, TEMP_BETA);
+    temperature = calculate_Temperature_B_Value(resistance, TEMP_BETA);
 #else
-    return calculate_Temperature_SH_Value(resistance);
+    temperature = calculate_Temperature_SH_Value(resistance);
 #endif
   }
+
+#ifdef DEBUG_PROBE
+  debug_sendProbeDebug(adsDeviceNumber, input, resistance, voltage, temperature);
+#endif
+
+  return temperature;
 }
 
 void handleCommandEvent(char *data)
@@ -240,7 +255,9 @@ void setup(void)
   ws_init(&currentSmokerState, handleCommandEvent);
 
   pinMode(HEAT_PIN, OUTPUT);
+  digitalWrite(HEAT_PIN, LOW);
   pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
 
   if (!ads1.begin())
   {
@@ -265,6 +282,8 @@ void loop(void)
   if (abortError)
   {
     digitalWrite(HEAT_PIN, LOW);
+    digitalWrite(LED_PIN, LOW);
+
     return;
   }
 
@@ -283,6 +302,7 @@ void loop(void)
     currentSmokerState.cookEndTime = 0;
     currentSmokerState.targetTemperature = 0;
     digitalWrite(HEAT_PIN, LOW);
+    digitalWrite(LED_PIN, LOW);
     timeOn = 0;
   }
 

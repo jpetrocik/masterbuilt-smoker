@@ -1,7 +1,7 @@
 {
   "uuid": "48734c8482287ccb02120efe81ac97b6",
-  "path": "Offline/MasterBuilt Smoker Controller",
-  "name": "MasterBuilt Smoker Controller",
+  "path": "Offline/Masterbuilt Smoker",
+  "name": "Masterbuilt Smoker",
   "content": "",
   "created_at": "2025-06-02 22:56:56",
   "updated_at": "2025-08-01 21:53:23",
@@ -293,8 +293,8 @@
     }
   ],
   "sort": [],
-  "title": "MasterBuilt Smoker Controller",
-  "foldername": "MasterBuilt Smoker Controller",
+  "title": "Masterbuilt Smoker",
+  "foldername": "Masterbuilt Smoker",
   "schfilename": "MasterBuilt Smoker Controller.json",
   "schfilemtime": 1754031739713
 }

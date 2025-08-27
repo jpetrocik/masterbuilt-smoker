@@ -64,7 +64,7 @@ void ws_handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
     {
         data[len] = '\0';
-        ws_commandEventHandler((char*) data);
+        ws_commandEventHandler((char *)data);
     }
 }
 
@@ -144,18 +144,17 @@ void ws_loop(long now)
 
     if (ws_wifiAction == WifiAction::CONNECTED)
     {
-        ws_commandEventHandler((char*)"wifiConnected");
+        ws_commandEventHandler((char *)"wifiConnected");
         ws_wifiAction = WifiAction::STABLE;
 
 #ifdef MQTT_ENABLED
-    mqtt_init(ws_commandEventHandler);
+        mqtt_init(ws_commandEventHandler);
 #endif
-
     }
 
     if (ws_wifiAction == WifiAction::DISCONNECTED)
     {
-        ws_commandEventHandler((char*)"wifiDiscounted");
+        ws_commandEventHandler((char *)"wifiDiscounted");
         ws_initWiFi();
     }
 
@@ -171,7 +170,7 @@ void ws_loop(long now)
     {
         ws_lastClientNotify = now;
 
-        char *jsonString = statusJson(ws_currentState);
+        char *jsonString = status_stateJson(ws_currentState);
         ws_notifyClients(jsonString);
 #ifdef MQTT_ENABLED
         mqtt_sendStatus(jsonString);

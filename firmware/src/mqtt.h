@@ -8,7 +8,9 @@
 
 void mqtt_init(CommandEventHandler ws_commandEventHandler);
 void mqtt_loop();
-void mqtt_sendStatus(char* jsonStatusMsg);
+void mqtt_sendStatus(const char* jsonStatusMsg);
+void mqtt_sendMessage(const char* topic, const char *jsonStatusMsg);
+uint32_t mqtt_chipId();
 
 #endif  
 #endif
