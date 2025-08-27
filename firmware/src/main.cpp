@@ -47,8 +47,8 @@ u_int32_t resistance3;
 void computePID()
 {
   heatControlPid.Compute();
-  currentSmokerState.dutyCycle = timeOn/(double)PID_WINDOW_SIZE;
-  
+  currentSmokerState.dutyCycle = timeOn / (double)PID_WINDOW_SIZE;
+
   // if (timeOn < 100)
   //   timeOn = 0;
 
@@ -302,6 +302,7 @@ void loop(void)
     Serial.println("Cook time exceeded, turning off heating.");
     currentSmokerState.cookEndTime = 0;
     currentSmokerState.targetTemperature = 0;
+    currentSmokerState.dutyCycle = 0;
     digitalWrite(HEAT_PIN, LOW);
     digitalWrite(LED_PIN, LOW);
     timeOn = 0;
