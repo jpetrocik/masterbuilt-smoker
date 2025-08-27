@@ -47,13 +47,14 @@ u_int32_t resistance3;
 void computePID()
 {
   heatControlPid.Compute();
-
-  if (timeOn < 100)
-    timeOn = 0;
+  currentSmokerState.dutyCycle = timeOn/(double)PID_WINDOW_SIZE;
+  
+  // if (timeOn < 100)
+  //   timeOn = 0;
 
   // recalcuate next PID window
   if (now - windowStartTime > PID_WINDOW_SIZE)
-    windowStartTime = now;
+    windowStartTime += PID_WINDOW_SIZE;
 
   if (timeOn > now - windowStartTime)
   {
@@ -250,7 +251,7 @@ void setup(void)
   windowStartTime = millis();
 
   heatControlPid.SetOutputLimits(0, PID_WINDOW_SIZE);
-  heatControlPid.SetMode(MANUAL);
+  heatControlPid.SetMode(AUTOMATIC);
 
   ws_init(&currentSmokerState, handleCommandEvent);
 

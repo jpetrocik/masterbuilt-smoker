@@ -7,13 +7,13 @@ char status_jsonBuffer[128];
 
 void status_init()
 {
-    status_statusJson["temperature"] = 0;
-    status_statusJson["targetTemperature"] = 0;
-    status_statusJson["cookTimer"] = 0; // 24 hours in minutes
-    status_statusJson["probe1"] = 0;
-    status_statusJson["probe2"] = 0;
-    status_statusJson["probe3"] = 0;
-    status_statusJson["probe4"] = 0;
+    // status_statusJson["temperature"] = 0;
+    // status_statusJson["targetTemperature"] = 0;
+    // status_statusJson["cookTimer"] = 0; // 24 hours in minutes
+    // status_statusJson["probe1"] = 0;
+    // status_statusJson["probe2"] = 0;
+    // status_statusJson["probe3"] = 0;
+    // status_statusJson["probe4"] = 0;
 }
 
 char* status_stateJson(status_state *state)
@@ -21,6 +21,7 @@ char* status_stateJson(status_state *state)
     status_statusJson["temperature"] = units_toLocalTemperature(state->temperature);
     status_statusJson["targetTemperature"] = units_toLocalTemperature(state->targetTemperature);
     status_statusJson["cookTimer"] = state->cookEndTime > 0 ? (state->cookEndTime - millis()) / 1000 : 0;
+    status_statusJson["dutyCycle"] = state->dutyCycle;
 
     status_statusJson.remove("probe1");
     if (state->probe1 > 0.0)

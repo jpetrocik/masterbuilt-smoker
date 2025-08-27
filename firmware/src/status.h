@@ -13,6 +13,7 @@ struct status_state {
   double targetTemperature = 0;
   long cookEndTime = 0;
   long cookTime = 0;
+  double dutyCycle = 0;
 }; 
 
 void status_init();
