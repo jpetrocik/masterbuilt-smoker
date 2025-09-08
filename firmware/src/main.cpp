@@ -8,7 +8,7 @@
 #include "units.h"
 #include "debug.h"
 
-double Kp = 300, Ki = 0.05, Kd = 150;
+double Kp = 300, Ki = 0.08, Kd = 0;
 
 // adc buffers
 uint16_t temp_buffer[ADC_SAMPLE_SIZE] = {0};

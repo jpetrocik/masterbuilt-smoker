@@ -18,11 +18,11 @@
 //https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
 //  22c 56000ohm
 //  79c  7934
-// 137c  1510ohm
-#define TEMP_A 1.086460802e-3
-#define TEMP_B 1.636467458e-4
-#define TEMP_C 3.921441666e-7
-#define TEMP_BETA 3563.39
+// 122c  2509ohm
+#define TEMP_A 0.3299035829e-3
+#define TEMP_B 2.863296026e-4
+#define TEMP_C -0.8445103122e-7
+#define TEMP_BETA 3835.15
 
 //https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
 //  24c  107021ohm
