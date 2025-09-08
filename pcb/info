@@ -1,10 +1,10 @@
 {
   "uuid": "48734c8482287ccb02120efe81ac97b6",
-  "path": "Offline/Masterbuilt Smoker",
+  "path": "Offline/Masterbuilt%20Smoker",
   "name": "Masterbuilt Smoker",
   "content": "",
   "created_at": "2025-06-02 22:56:56",
-  "updated_at": "2025-08-01 21:53:23",
+  "updated_at": "2025-08-30 22:17:58",
   "stick": "",
   "documents": [
     {
@@ -16,9 +16,9 @@
       "thumb": "/images/thumb-default.png",
       "components": {
         "d603088cb9644c1fa29ca28abd96dbfe": 2,
-        "9698a5ebc38f435fb5a5f9ff5b84927c": 10,
+        "9698a5ebc38f435fb5a5f9ff5b84927c": 11,
         "aed60633d9f441a4a38474ac88247e91": 4,
-        "7f9c6d4d878346f99916c580bc848141": 2,
+        "7f9c6d4d878346f99916c580bc848141": 3,
         "b82150387a2041b4afd55b90c79c5923": 10,
         "00ef082505fc4fb190eecc552c946962": 2,
         "f5b1d9403e49471cab43bc5a1bec336f": 2,
@@ -142,6 +142,18 @@
           }
         ],
         [
+          "HEAT",
+          1,
+          "LED0805_BLUE",
+          "LED3",
+          {
+            "Manufacturer Part": "D-B080508B1-KS2",
+            "Manufacturer": "方舟 ARKLED",
+            "Supplier": "",
+            "Supplier Part": "C108412"
+          }
+        ],
+        [
           "PJ-208",
           4,
           "AUDIO-SMD_PJ-208",
@@ -166,10 +178,22 @@
           }
         ],
         [
-          "1k",
-          4,
+          "?k",
+          3,
           "R0805",
-          "R6,R7,R9,R10",
+          "R6,R7,R11",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "1k",
+          2,
+          "R0805",
+          "R9,R10",
           {
             "Manufacturer Part": "",
             "Manufacturer": "",
@@ -202,11 +226,11 @@
           }
         ]
       ],
-      "updateTime": 1754031063,
+      "updateTime": 1756617478,
       "createTime": 1748930216,
       "histories": [],
       "created_at": "2025-06-02 22:56:56",
-      "updated_at": "2025-07-31 23:51:03"
+      "updated_at": "2025-08-30 22:17:58"
     },
     {
       "uuid": "66543c7028c1e4b22c3b1631979944c7",
@@ -218,11 +242,11 @@
       "master": "",
       "thumb": "/images/thumb-default.png",
       "components": {
+        "4799ae47897d474280a6e45a4d12ef3d": 3,
+        "b60f399a7a7e41848b2be1eb49c79141": 11,
         "fb11a1cdebf6433b8a3c664a100689e6": 1,
-        "4799ae47897d474280a6e45a4d12ef3d": 2,
         "282f7786cb6144d097ae00194c3e3fb3": 2,
         "5d4da3646d444c0895c61a2402e77674": 1,
-        "b60f399a7a7e41848b2be1eb49c79141": 10,
         "b77416f886f74a91a0b9ce8513b8c211": 2,
         "fb532a834f114cab8c58c4bcae32e8d3": 2,
         "2ee8eb13a0124a108e622ce40c0c25a8": 10,
@@ -285,16 +309,16 @@
           }
         ]
       ],
-      "updateTime": 1754110403,
+      "updateTime": 1756617438,
       "createTime": 1748981774,
       "histories": [],
       "created_at": "2025-06-03 13:16:14",
-      "updated_at": "2025-08-01 21:53:23"
+      "updated_at": "2025-08-30 22:17:18"
     }
   ],
   "sort": [],
   "title": "Masterbuilt Smoker",
   "foldername": "Masterbuilt Smoker",
   "schfilename": "MasterBuilt Smoker Controller.json",
-  "schfilemtime": 1754031739713
+  "schfilemtime": 1756617478800
 }
