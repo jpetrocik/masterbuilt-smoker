@@ -1,0 +1,17 @@
+{
+  "codename": "Solid_Wifi",
+  "ttf_path": "/assets/fa-solid-900.ttf",
+  "bin_path": "/assets/ui_font_Solid_Wifi.bin",
+  "c_path": "/assets/ui_font_Solid_Wifi.c",
+  "cfg_path": "/assets/ui_font_Solid_Wifi.fcfg",
+  "size": 12,
+  "bpp": 4,
+  "letters": 0,
+  "ranges": [
+    "0xf1eb",
+    "    0xf06d"
+  ],
+  "symbols": "",
+  "customparams": "--no-compress --no-prefilter",
+  "uploaded": false
+}

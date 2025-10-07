@@ -1,0 +1,90 @@
+{
+  "deftheme": {
+    "name": "Default",
+    "properties": [
+      {
+        "nid": 1000618,
+        "strtype": "THEME_COLOR",
+        "strval": "Primary",
+        "intarray": [
+          255,
+          61,
+          0,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": 1000619,
+        "strtype": "THEME_COLOR",
+        "strval": "Light Text",
+        "intarray": [
+          224,
+          224,
+          224,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": 1000620,
+        "strtype": "THEME_COLOR",
+        "strval": "Dark Text",
+        "intarray": [
+          23,
+          23,
+          23,
+          255
+        ],
+        "InheritedType": 0
+      }
+    ]
+  },
+  "themes": [
+    {
+      "name": "Dark Orange",
+      "properties": [
+        {
+          "nid": 1000618,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Primary",
+          "intarray": [
+            255,
+            61,
+            0,
+            255
+          ],
+          "InheritedType": 0
+        },
+        {
+          "nid": 1000619,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Light Text",
+          "intarray": [
+            224,
+            224,
+            224,
+            255
+          ],
+          "InheritedType": 0
+        },
+        {
+          "nid": 1000620,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Dark Text",
+          "intarray": [
+            23,
+            23,
+            23,
+            255
+          ],
+          "InheritedType": 0
+        }
+      ]
+    }
+  ],
+  "selected_theme": "Dark Orange"
+}
