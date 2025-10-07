@@ -1,0 +1,329 @@
+{
+  "uuid": "48734c8482287ccb02120efe81ac97b6",
+  "path": "Offline/Masterbuilt%20Smoker",
+  "name": "Masterbuilt Smoker",
+  "content": "",
+  "created_at": "2025-06-02 22:56:56",
+  "updated_at": "2025-10-06 23:13:54",
+  "stick": "",
+  "documents": [
+    {
+      "uuid": "61faee03ba9299b598cac6964a402723",
+      "title": "Controller Schematic",
+      "description": "",
+      "docType": "1",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "d603088cb9644c1fa29ca28abd96dbfe": 2,
+        "9698a5ebc38f435fb5a5f9ff5b84927c": 11,
+        "aed60633d9f441a4a38474ac88247e91": 4,
+        "7f9c6d4d878346f99916c580bc848141": 3,
+        "b82150387a2041b4afd55b90c79c5923": 10,
+        "00ef082505fc4fb190eecc552c946962": 2,
+        "f5b1d9403e49471cab43bc5a1bec336f": 2,
+        "2e076c730e064f17ac11a9a9d4cd7bf4": 1,
+        "92c32ceaaac84139add7ebda884f0a47": 1,
+        "a68dc5e6a9944c46b7604648a43dcd65": 1
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "K4-6×6_SMD",
+          2,
+          "KEY-SMD_4P-L6.0-W6.0-P3.90-LS10.0",
+          "BOOT,RESET",
+          {
+            "Manufacturer Part": "K2-6639SP-D4SC-04",
+            "Manufacturer": "韩国韩荣",
+            "Supplier": "LCSC",
+            "Supplier Part": "C191626"
+          }
+        ],
+        [
+          "1uF",
+          1,
+          "C0805",
+          "C1",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "0.1u",
+          7,
+          "C0805",
+          "C2,C3,C4,C5,C6,C9,C10",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "10uf",
+          1,
+          "C0805",
+          "C7",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "100nf",
+          1,
+          "C0805",
+          "C8",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "HDR-M-2.54_1x4",
+          2,
+          "HDR-M-2.54_1X4",
+          "CONNECTOR,ISP",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "LCSC",
+            "Supplier Part": "C124378"
+          }
+        ],
+        [
+          "TFT",
+          1,
+          "HDR-M-2.54_1X8",
+          "J1",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "LCSC",
+            "Supplier Part": "C190820"
+          }
+        ],
+        [
+          "KEYBOARD",
+          1,
+          "HDR-M-2.54_1X3",
+          "J2",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "LCSC",
+            "Supplier Part": "C180248"
+          }
+        ],
+        [
+          "LED1",
+          1,
+          "LED0805_BLUE",
+          "LED1",
+          {
+            "Manufacturer Part": "D-B080508B1-KS2",
+            "Manufacturer": "方舟 ARKLED",
+            "Supplier": "",
+            "Supplier Part": "C108412"
+          }
+        ],
+        [
+          "POWER",
+          1,
+          "LED0805_BLUE",
+          "LED2",
+          {
+            "Manufacturer Part": "D-B080508B1-KS2",
+            "Manufacturer": "方舟 ARKLED",
+            "Supplier": "",
+            "Supplier Part": "C108412"
+          }
+        ],
+        [
+          "HEAT",
+          1,
+          "LED0805_BLUE",
+          "LED3",
+          {
+            "Manufacturer Part": "D-B080508B1-KS2",
+            "Manufacturer": "方舟 ARKLED",
+            "Supplier": "",
+            "Supplier Part": "C108412"
+          }
+        ],
+        [
+          "PJ-208",
+          4,
+          "AUDIO-SMD_PJ-208",
+          "PROBE1,PROBE2,PROBE3,PROBE4",
+          {
+            "Manufacturer Part": "PJ-208-SMT",
+            "Manufacturer": "XKB Connectivity(中国星坤)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C725775"
+          }
+        ],
+        [
+          "10k",
+          6,
+          "R0805",
+          "R1,R2,R3,R4,R5,R8",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "1k",
+          5,
+          "R0805",
+          "R6,R7,R9,R10,R11",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "ADS1115IDGST",
+          2,
+          "VSSOP-10_L3.0-W3.0-P0.50-LS4.9-BL",
+          "U1,U2",
+          {
+            "Manufacturer Part": "ADS1115IDGST",
+            "Manufacturer": "TI(德州仪器)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C468683"
+          }
+        ],
+        [
+          "ESP32-WROOM-32UE(4MB)_C2934568",
+          1,
+          "WIFI-SMD_ESP32-WROOM-32UE-A",
+          "U4",
+          {
+            "Manufacturer Part": "ESP32-WROOM-32UE-N4",
+            "Manufacturer": "ESPRESSIF(乐鑫)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2934568"
+          }
+        ]
+      ],
+      "updateTime": 1759787562,
+      "createTime": 1748930216,
+      "histories": [],
+      "created_at": "2025-06-02 22:56:56",
+      "updated_at": "2025-10-06 14:52:42"
+    },
+    {
+      "uuid": "66543c7028c1e4b22c3b1631979944c7",
+      "puuid": "48734c8482287ccb02120efe81ac97b6",
+      "title": "Controller Board",
+      "filename": "Controller Board.json",
+      "description": "",
+      "docType": "3",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "9f77654394344f25b3de138e0fe05ff6": 1,
+        "4799ae47897d474280a6e45a4d12ef3d": 3,
+        "b60f399a7a7e41848b2be1eb49c79141": 11,
+        "fb11a1cdebf6433b8a3c664a100689e6": 1,
+        "282f7786cb6144d097ae00194c3e3fb3": 2,
+        "5d4da3646d444c0895c61a2402e77674": 1,
+        "b77416f886f74a91a0b9ce8513b8c211": 2,
+        "fb532a834f114cab8c58c4bcae32e8d3": 2,
+        "2ee8eb13a0124a108e622ce40c0c25a8": 10,
+        "c3934d92c2f145cb8e192c6458a444de": 4
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "PJ-208",
+          5,
+          "AUDIO-SMD_PJ-208",
+          "CN1,CN2,CN3,CN4,CN5",
+          {
+            "Manufacturer Part": "PJ-208-SMT",
+            "Manufacturer": "XKB Connectivity(中国星坤)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C725775"
+          }
+        ],
+        [
+          "10k",
+          5,
+          "R0805",
+          "R1,R2,R3,R4,R5",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "ADS1115IDGST",
+          2,
+          "VSSOP-10_L3.0-W3.0-P0.50-LS4.9-BL",
+          "U1,U2",
+          {
+            "Manufacturer Part": "ADS1115IDGST",
+            "Manufacturer": "TI(德州仪器)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C468683"
+          }
+        ],
+        [
+          "ESP32-WROOM-32D",
+          1,
+          "WIFIM-SMD_39P-L25.5-W18.0-P1.27-BL",
+          "U3",
+          {
+            "Manufacturer Part": "ESP32-WROOM-32D-N4",
+            "Manufacturer": "ESPRESSIF(乐鑫)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C473012"
+          }
+        ]
+      ],
+      "updateTime": 1759817634,
+      "createTime": 1748981774,
+      "histories": [],
+      "created_at": "2025-06-03 13:16:14",
+      "updated_at": "2025-10-06 23:13:54"
+    }
+  ],
+  "sort": [
+    "61faee03ba9299b598cac6964a402723",
+    "fc4580378486353b3035cb54a964a9b3"
+  ],
+  "title": "Masterbuilt Smoker",
+  "foldername": "Masterbuilt Smoker",
+  "schfilename": "Controller Schematic.json",
+  "schfilemtime": 1759788680924
+}
