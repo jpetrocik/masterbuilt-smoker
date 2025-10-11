@@ -23,6 +23,7 @@ void lcd_loop();
 void lcd_wifiConnected();
 void lcd_wifiDisconnected();
 void lcd_setProbeLabel(PROBE probe, char *label);
+void lcd_updateSmokerState();
 
 #endif // LCD_SUPPORTED
 #endif // INTERFACE_H

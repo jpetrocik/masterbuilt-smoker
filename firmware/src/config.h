@@ -4,7 +4,7 @@
 #define WIFI_SSID "PNET"
 #define WIFI_PASSWORD "5626278472"
 
-//#define LCD_SUPPORTED  // Uncomment to enable LCD support
+#define LCD_SUPPORTED  // Uncomment to enable LCD support
 #define OTA_ENABLED
 
 #define ADC_SAMPLE_SIZE 10

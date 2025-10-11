@@ -32,7 +32,7 @@ void debug_sendProbeDebug(int deviceNumber, int input, uint32_t resistance, uint
     }
 
     mqtt_sendMessage(mqtt_debugTopic, debug_jsonBuffer, false);
-#endif,
+#endif
 }
 
 void debug_sendPidSettings(double kp, double ki, double kd)

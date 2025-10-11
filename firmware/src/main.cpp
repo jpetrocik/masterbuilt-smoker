@@ -283,6 +283,10 @@ void setup(void)
 void loop(void)
 {
 
+#ifdef LCD_SUPPORTED
+  lcd_loop();
+#endif // LCD_SUPPORTED
+
   if (abortError)
   {
     digitalWrite(HEAT_PIN, LOW);
@@ -329,8 +333,4 @@ void loop(void)
   }
 
   ws_loop(now);
-
-#ifdef LCD_SUPPORTED
-  lcd_loop();
-#endif // LCD_SUPPORTED
 }
