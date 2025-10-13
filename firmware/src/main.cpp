@@ -23,7 +23,7 @@ uint16_t probe4_buffer[ADC_SAMPLE_SIZE] = {0};
 uint8_t probe4_index = 0;
 
 // main loop variables
-long now;
+unsigned long now;
 bool abortError = false;
 int16_t reading;
 uint32_t voltage;
@@ -282,9 +282,10 @@ void setup(void)
 
 void loop(void)
 {
+  now = millis();
 
 #ifdef LCD_SUPPORTED
-  lcd_loop();
+  lcd_loop(now);
 #endif // LCD_SUPPORTED
 
   if (abortError)
@@ -300,8 +301,6 @@ void loop(void)
     Serial.println("Temperature too high, aborting!");
     abortError = true;
   }
-
-  now = millis();
 
   // Checks for cook time exceeded and reset target temperature
   if (currentSmokerState.cookEndTime > 0 && currentSmokerState.cookEndTime < now)

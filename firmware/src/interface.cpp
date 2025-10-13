@@ -17,6 +17,7 @@ int lcd_cookTimeSeconds = 0;
 int lcd_cookTimeMinutes = 0;
 int lcd_cookTimeHours = 0;
 bool lcd_toggleclockColon = true;
+unsigned long lcd_lastUpdated = 0;
 
 uint32_t lcd_tickProvider()
 {
@@ -27,7 +28,8 @@ void lcd_updateCookTime(lv_timer_t *timer)
 {
 
     // No timer set, so we can not update the cook time
-    if (lcd_currentState->cookEndTime == 0) {
+    if (lcd_currentState->cookEndTime == 0)
+    {
         lv_label_set_text(ui_CookTimeHoursLabel, "--");
         lv_label_set_text(ui_CookTimeMinutesLabel, "--");
         lv_label_set_text(ui_CookTimeSeperatorLabel, ":");
@@ -37,9 +39,9 @@ void lcd_updateCookTime(lv_timer_t *timer)
     lcd_cookTimeSeconds = (lcd_currentState->cookEndTime - millis()) / 1000;
 
     lcd_cookTimeMinutes = lcd_cookTimeSeconds / 60; // Increment minutes if seconds exceed 60
-    lcd_cookTimeSeconds = lcd_cookTimeSeconds % 60;  // Reset seconds to 0 if
+    lcd_cookTimeSeconds = lcd_cookTimeSeconds % 60; // Reset seconds to 0 if
 
-    lcd_cookTimeHours = lcd_cookTimeMinutes / 60;  // Increment hours if minutes exceed 60
+    lcd_cookTimeHours = lcd_cookTimeMinutes / 60;   // Increment hours if minutes exceed 60
     lcd_cookTimeMinutes = lcd_cookTimeMinutes % 60; // Reset minutes to 0 if they exceed 60
 
     // Add 1 minute to ensure we display the full minute until it passes: 1:32:24 should dusplay 1:33
@@ -50,7 +52,7 @@ void lcd_updateCookTime(lv_timer_t *timer)
         lcd_cookTimeMinutes = 0;
     }
 
-    lv_label_set_text_fmt(ui_CookTimeHoursLabel, "%02d", lcd_cookTimeHours);     
+    lv_label_set_text_fmt(ui_CookTimeHoursLabel, "%02d", lcd_cookTimeHours);
     lv_label_set_text_fmt(ui_CookTimeMinutesLabel, "%02d", lcd_cookTimeMinutes);
 
     if (lcd_toggleclockColon = !lcd_toggleclockColon)
@@ -85,7 +87,6 @@ void lcd_init(status_state *state)
 void lcd_taskHandler()
 {
     lv_task_handler(); // Call the LVGL task handler to process events and draw
-    delay(5);          // Add a small delay to allow for smoother updates
 }
 
 void lcd_updateSmokerState()
@@ -142,7 +143,9 @@ void lcd_updateSmokerState()
                                                _ui_theme_color_Primary);
         ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
                                                _ui_theme_alpha_Primary);
-    } else {
+    }
+    else
+    {
         ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
                                                _ui_theme_color_Dark_Text);
         ui_object_set_themeable_style_property(ui_OnOffLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
@@ -150,42 +153,50 @@ void lcd_updateSmokerState()
     }
 }
 
-void lcd_loop()
+void lcd_loop(unsigned long &now)
 {
-    lcd_taskHandler();
-    lcd_updateSmokerState();
+    if (now - lcd_lastUpdated > 250)
+    {
+        lcd_taskHandler();
+        lcd_updateSmokerState();
+        lcd_lastUpdated = now;
+    }
 }
 
-void lcd_wifiConnected(){   
-        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
-                                               _ui_theme_color_Dark_Text);
-        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
-                                               _ui_theme_alpha_Dark_Text);
+void lcd_wifiConnected()
+{
+    ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
+                                           _ui_theme_color_Dark_Text);
+    ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
+                                           _ui_theme_alpha_Dark_Text);
 }
 
-void lcd_wifiDisconnected(){   
-        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
-                                               _ui_theme_color_Light_Text);
-        ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
-                                               _ui_theme_alpha_Light_Text);
+void lcd_wifiDisconnected()
+{
+    ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
+                                           _ui_theme_color_Light_Text);
+    ui_object_set_themeable_style_property(ui_WifiLabel, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
+                                           _ui_theme_alpha_Light_Text);
 }
 
-void lcd_setProbeLabel(PROBE probe, char *label) {
-    switch (probe) {
-        case PROBE1:
-            lv_label_set_text(ui_Probe1Label, label);
-            break;
-        case PROBE2:
-            lv_label_set_text(ui_Probe2Label, label);
-            break;
-        case PROBE3:
-            lv_label_set_text(ui_Probe3Label, label);
-            break;
-        case PROBE4:
-            lv_label_set_text(ui_Probe4Label, label);
-            break;
-        default:
-            break;
+void lcd_setProbeLabel(PROBE probe, char *label)
+{
+    switch (probe)
+    {
+    case PROBE1:
+        lv_label_set_text(ui_Probe1Label, label);
+        break;
+    case PROBE2:
+        lv_label_set_text(ui_Probe2Label, label);
+        break;
+    case PROBE3:
+        lv_label_set_text(ui_Probe3Label, label);
+        break;
+    case PROBE4:
+        lv_label_set_text(ui_Probe4Label, label);
+        break;
+    default:
+        break;
     }
 }
 #endif // LCD_SUPPORTED

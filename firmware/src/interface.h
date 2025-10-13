@@ -19,7 +19,7 @@
 enum PROBE { PROBE1, PROBE2, PROBE3, PROBE4 };
 
 void lcd_init(status_state *state);
-void lcd_loop();
+void lcd_loop(unsigned long &now);
 void lcd_wifiConnected();
 void lcd_wifiDisconnected();
 void lcd_setProbeLabel(PROBE probe, char *label);
