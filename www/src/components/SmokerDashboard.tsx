@@ -30,20 +30,19 @@ const generateMockData = () => {
 
 const mockData = generateMockData();
 
-// Static snapshot values for the grid
-const staticSnapshot = {
-  smokerTemp: 224,
-  smokerTarget: 225,
-  probes: [
-    { current: 145, target: 165 },
-    { current: 151, target: 160 },
-    { current: 148, target: 155 },
-    { current: 153, target: 170 },
-  ],
-};
-
 export const SmokerDashboard: React.FC = () => {
-  const { isOnline, isHeatOn } = useSmokerStore();
+  const { 
+    isOnline, 
+    isHeatOn, 
+    smokerTemp, 
+    smokerTarget, 
+    elapsedCookTime, 
+    cookTimer, 
+    probe1,
+    probe2,
+    probe3,
+    probe4
+  } = useSmokerStore();
   const { carouselIndex, setCarouselIndex } = useUserPreferenceStore();
   const [touchStart, setTouchStart] = React.useState<number | null>(null);
   const [touchEnd, setTouchEnd] = React.useState<number | null>(null);
@@ -72,7 +71,7 @@ export const SmokerDashboard: React.FC = () => {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe && carouselIndex < 1) {
+    if (isLeftSwipe && carouselIndex < 2) {
       setCarouselIndex(carouselIndex + 1);
     } else if (isRightSwipe && carouselIndex > 0) {
       setCarouselIndex(carouselIndex - 1);
@@ -99,7 +98,7 @@ export const SmokerDashboard: React.FC = () => {
         <div className="col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-6 relative overflow-hidden">
           {/* Carousel Header */}
           <div className="absolute top-4 left-4 text-zinc-300 text-sm font-semibold z-10">
-            {carouselIndex === 0 ? "Smoker Temp" : "Cook Timer"}
+            {carouselIndex === 0 ? "Smoker Temp" : carouselIndex === 1 ? "Cook Timer" : "Elapsed Time"}
           </div>
 
           {/* Swipeable Container */}
@@ -123,11 +122,11 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-tighter",
                   isHeatOn ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-400"
                 )}>
-                  {staticSnapshot.smokerTemp}°
+                  {smokerTemp}°
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
-                {staticSnapshot.smokerTarget}°
+                {smokerTarget}°
               </div>
             </div>
 
@@ -144,11 +143,32 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-widest font-mono",
                   isHeatOn ? "text-orange-500" : "text-zinc-400"
                 )}>
-                  04:34
+                  {cookTimer}
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
                 Remaining
+              </div>
+            </div>
+
+            {/* Slide 3: Elapsed Time */}
+            <div className="snap-start shrink-0 w-full flex flex-col items-center justify-center">
+              <div className="flex items-center justify-center gap-2">
+                <Flame 
+                  className={cn(
+                    "w-12 h-12",
+                    isHeatOn ? "text-orange-500" : "text-zinc-400"
+                  )} 
+                />
+                <div className={cn(
+                  "text-7xl font-bold tracking-widest font-mono",
+                  isHeatOn ? "text-orange-500" : "text-zinc-400"
+                )}>
+                  {elapsedCookTime}
+                </div>
+              </div>
+              <div className="text-zinc-500 text-xl mt-1">
+                Elapsed
               </div>
             </div>
           </div>
@@ -157,26 +177,63 @@ export const SmokerDashboard: React.FC = () => {
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
             <div className={cn("w-2 h-2 rounded-full", carouselIndex === 0 ? "bg-orange-500" : "bg-zinc-600")} />
             <div className={cn("w-2 h-2 rounded-full", carouselIndex === 1 ? "bg-orange-500" : "bg-zinc-600")} />
+            <div className={cn("w-2 h-2 rounded-full", carouselIndex === 2 ? "bg-orange-500" : "bg-zinc-600")} />
           </div>
         </div>
 
         {/* Probe Cards */}
-        {staticSnapshot.probes.map((probe, index) => (
-          <div
-            key={index}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
-          >
-            <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
-              Probe {index + 1}
-            </div>
-            <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-              {probe.current}°
-            </div>
-            <div className="text-zinc-500 text-lg mt-1">
-              {probe.target}°
-            </div>
+        <div
+          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
+        >
+          <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
+            Probe 1
           </div>
-        ))}
+          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+            {probe1.current}°
+          </div>
+          <div className="text-zinc-500 text-lg mt-1">
+            {probe1.target}°
+          </div>
+        </div>
+        <div
+          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
+        >
+          <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
+            Probe 2
+          </div>
+          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+            {probe2.current}°
+          </div>
+          <div className="text-zinc-500 text-lg mt-1">
+            {probe2.target}°
+          </div>
+        </div>
+        <div
+          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
+        >
+          <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
+            Probe 3
+          </div>
+          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+            {probe3.current}°
+          </div>
+          <div className="text-zinc-500 text-lg mt-1">
+            {probe3.target}°
+          </div>
+        </div>
+        <div
+          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
+        >
+          <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
+            Probe 4
+          </div>
+          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+            {probe4.current}°
+          </div>
+          <div className="text-zinc-500 text-lg mt-1">
+            {probe4.target}°
+          </div>
+        </div>
       </div>
 
       {/* Historical Chart Section */}
