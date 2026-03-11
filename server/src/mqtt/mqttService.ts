@@ -83,3 +83,20 @@ export function disconnectMqtt(): void {
     client.end();
   }
 }
+
+export function publishCommand(smokerId: string, command: string): void {
+  const topic = `smoker/${smokerId}/command`;
+  
+  if (!client || !client.connected) {
+    console.error(`Cannot publish command: MQTT client not connected. Topic: ${topic}, Command: ${command}`);
+    return;
+  }
+  
+  client.publish(topic, command, { qos: 1, retain: false }, (err) => {
+    if (err) {
+      console.error(`Failed to publish command to ${topic}:`, err);
+    } else {
+      console.log(`Published command to ${topic}: ${command}`);
+    }
+  });
+}

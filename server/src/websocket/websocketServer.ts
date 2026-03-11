@@ -4,6 +4,7 @@ import url from 'url';
 import { getHistoricalData } from '../database/database';
 import { telemetryEmitter } from '../utils/eventEmitter';
 import { SmokerTelemetryPayload } from '../types';
+import { publishCommand } from '../mqtt/mqttService';
 
 export function createWebSocketServer(server: http.Server): void {
   const wss = new WebSocketServer({ noServer: true });
@@ -62,6 +63,46 @@ export function createWebSocketServer(server: http.Server): void {
     };
     
     telemetryEmitter.on('telemetry', onTelemetry);
+
+    // Handle incoming messages (commands)
+    ws.on('message', (data) => {
+      try {
+        const messageStr = data.toString();
+        const message = JSON.parse(messageStr);
+
+        // Validate action
+        if (message.action !== 'command') {
+          console.warn(`Invalid action: ${message.action}. Expected 'command'.`);
+          return;
+        }
+
+        // Validate commandKey whitelist
+        const validCommandKeys = [
+          'setTemp', 'setKp', 'setKi', 'setKd', 'setCookTime',
+          'setProbe1Label', 'setProbe2Label', 'setProbe3Label', 'setProbe4Label',
+          'setProbe1Target', 'setProbe2Target', 'setProbe3Target', 'setProbe4Target'
+        ];
+
+        if (!validCommandKeys.includes(message.commandKey)) {
+          console.warn(`Invalid commandKey: ${message.commandKey}`);
+          return;
+        }
+
+        // Translate to plain-text format
+        let commandString: string;
+        if (message.commandValue !== undefined && message.commandValue !== null) {
+          commandString = `${message.commandKey}=${message.commandValue}`;
+        } else {
+          commandString = `${message.commandKey}`;
+        }
+
+        // Publish to MQTT
+        publishCommand(smokerId, commandString);
+
+      } catch (err) {
+        console.warn(`Failed to process WebSocket message: ${(err as Error).message}`);
+      }
+    });
     
     // Cleanup on close
     ws.on('close', () => {
