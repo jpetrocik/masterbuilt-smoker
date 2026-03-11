@@ -176,13 +176,14 @@ void handleCommandEvent(char *data)
     }
 
     /**
-     * When setting the temp to 0, stop cook timer.
+     * When setting the temp to 0, stop cook timer and cancel scheduled shutdown.
      * When setting to temp from 0 to non-zero, start timer
-     * Whene setting the temp from non-zero to non-zero, do nothing
+     * When setting the temp from non-zero to non-zero, do nothing
      */
     if (newRequestedTargetTemp == 0.0)
     {
       currentSmokerState.cookTime = 0;
+      currentSmokerState.cookEndTime = 0;
     }
     else if (currentSmokerState.targetTemperature == 0.0)
     {
@@ -212,6 +213,22 @@ void handleCommandEvent(char *data)
   else if (strncmp(data, "setCookTime=", 12) == 0)
   {
     currentSmokerState.cookEndTime = millis() + (atoi(&data[12]) * 60000l);
+  }
+  else if (strncmp(data, "setProbe1Target=", 16) == 0)
+  {
+    currentSmokerState.targetProbe1 = units_fromLocalTemperature(atoi(&data[16]));
+  }
+  else if (strncmp(data, "setProbe2Target=", 16) == 0)
+  {
+    currentSmokerState.targetProbe2 = units_fromLocalTemperature(atoi(&data[16]));
+  }
+  else if (strncmp(data, "setProbe3Target=", 16) == 0)
+  {
+    currentSmokerState.targetProbe3 = units_fromLocalTemperature(atoi(&data[16]));
+  }
+  else if (strncmp(data, "setProbe4Target=", 16) == 0)
+  {
+    currentSmokerState.targetProbe4 = units_fromLocalTemperature(atoi(&data[16]));
   }
 #ifdef LCD_SUPPORTED
   else if (strncmp(data, "lcdUpdate", 9) == 0)
@@ -322,6 +339,12 @@ void loop(void)
     currentSmokerState.probe2 = readTemperature(&ads1, 1, PROBE_SERIES_RESISTOR, probe2_buffer, &probe2_index);
     currentSmokerState.probe3 = readTemperature(&ads1, 2, PROBE_SERIES_RESISTOR, probe3_buffer, &probe3_index);
     currentSmokerState.probe4 = readTemperature(&ads1, 3, PROBE_SERIES_RESISTOR, probe4_buffer, &probe4_index);
+
+    // Check alarm conditions
+    currentSmokerState.alarmProbe1 = (currentSmokerState.targetProbe1 > 0 && currentSmokerState.probe1 > currentSmokerState.targetProbe1);
+    currentSmokerState.alarmProbe2 = (currentSmokerState.targetProbe2 > 0 && currentSmokerState.probe2 > currentSmokerState.targetProbe2);
+    currentSmokerState.alarmProbe3 = (currentSmokerState.targetProbe3 > 0 && currentSmokerState.probe3 > currentSmokerState.targetProbe3);
+    currentSmokerState.alarmProbe4 = (currentSmokerState.targetProbe4 > 0 && currentSmokerState.probe4 > currentSmokerState.targetProbe4);
 
     lastProbeRead = now;
   }
