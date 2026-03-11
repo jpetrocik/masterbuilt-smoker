@@ -1,0 +1,11 @@
+{
+  "mqtt": {
+    "brokerUrl": "mqtt://hermes:1883"
+  },
+  "database": {
+    "path": "./smokers.db"
+  },
+  "history": {
+    "retentionHours": 24
+  }
+}
