@@ -1,11 +1,18 @@
 {
   "mqtt": {
-    "brokerUrl": "mqtt://hermes:1883"
+    "host": "hermes",
+    "port": 1883,
+    "protocol": "mqtt",
+    "username": "",
+    "password": "",
+    "clientIdPrefix": "smoker-backend-"
+  },
+  "server": {
+    "port": 3000
   },
   "database": {
-    "path": "./smokers.db"
-  },
-  "history": {
-    "retentionHours": 24
+    "path": "./data/smoker_history.db",
+    "maxHistoryHours": 6,
+    "offlinePurgeHours": 1
   }
 }

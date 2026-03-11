@@ -93,8 +93,16 @@ export function updateSmokerStatus(smokerId: string, status: 'online' | 'offline
   stmt.run(smokerId, status, timestamp);
 }
 
-export function getSmokers(): { id: string; status: string; lastSeen: number }[] {
-  const stmt = db.prepare('SELECT id, status, last_seen as lastSeen FROM smokers');
+export function getSmokers(filterStatus?: 'online' | 'offline' | 'all'): { id: string; status: string; lastSeen: number }[] {
+  let sql = 'SELECT id, status, last_seen as lastSeen FROM smokers';
+  
+  if (filterStatus && filterStatus !== 'all') {
+    sql += ' WHERE status = ?';
+    const stmt = db.prepare(sql);
+    return stmt.all(filterStatus) as unknown as { id: string; status: string; lastSeen: number }[];
+  }
+  
+  const stmt = db.prepare(sql);
   return stmt.all() as unknown as { id: string; status: string; lastSeen: number }[];
 }
 
@@ -109,14 +117,41 @@ export function getHistoricalData(smokerId: string, since: number): CookHistoryR
   return stmt.all(smokerId, since) as unknown as CookHistoryRow[];
 }
 
-export function purgeOldHistory(retentionHours: number): void {
-  const cutoff = Date.now() - (retentionHours * 60 * 60 * 1000);
+export function purgeOldHistory(retentionHours: number, offlinePurgeHours: number): void {
+  const now = Date.now();
+  const globalCutoff = now - (retentionHours * 60 * 60 * 1000);
+  const offlineCutoff = now - (offlinePurgeHours * 60 * 60 * 1000);
   
-  const stmt = db.prepare('DELETE FROM cook_history WHERE timestamp < ?');
-  stmt.run(cutoff);
+  // Purge old history based on timestamp (global retention)
+  const globalStmt = db.prepare('DELETE FROM cook_history WHERE timestamp < ?');
+  globalStmt.run(globalCutoff);
   
-  // Also update offline smokers that have been offline for too long
-  // (This logic might be handled in the MQTT service, but here's a helper)
+  // Purge history for smokers that have been offline for too long
+  // First, get smokers that are offline and last_seen < offlineCutoff
+  const offlineSmokersStmt = db.prepare(`
+    SELECT id FROM smokers 
+    WHERE status = 'offline' AND last_seen < ?
+  `);
+  const offlineSmokers = offlineSmokersStmt.all(offlineCutoff) as { id: string }[];
+  
+  if (offlineSmokers.length > 0) {
+    const smokerIds = offlineSmokers.map(s => s.id);
+    
+    // Delete history for these smokers
+    const placeholders = smokerIds.map(() => '?').join(',');
+    const deleteHistoryStmt = db.prepare(`
+      DELETE FROM cook_history WHERE smoker_id IN (${placeholders})
+    `);
+    deleteHistoryStmt.run(...smokerIds);
+    
+    // Deregister the tenants (delete from smokers table)
+    const deleteSmokersStmt = db.prepare(`
+      DELETE FROM smokers WHERE id IN (${placeholders})
+    `);
+    deleteSmokersStmt.run(...smokerIds);
+    
+    console.log(`Purged history and deregistered ${offlineSmokers.length} offline smokers`);
+  }
 }
 
 export function closeDatabase(): void {

@@ -16,8 +16,8 @@ export function createWebSocketServer(server: http.Server): void {
     
     const pathname = url.parse(request.url).pathname;
     
-    // Check if the path matches /smoker/:id/data
-    const match = pathname?.match(/^\/smoker\/([^\/]+)\/data$/);
+    // Check if the path matches /ws/smoker/:id/data
+    const match = pathname?.match(/^\/ws\/smoker\/([^\/]+)\/data$/);
     
     if (match) {
       const smokerId = match[1];
@@ -33,18 +33,22 @@ export function createWebSocketServer(server: http.Server): void {
   wss.on('connection', (ws: WebSocket, request: http.IncomingMessage, smokerId: string) => {
     console.log(`WebSocket connected for smoker: ${smokerId}`);
     
-    // Parse 'since' query parameter
+    // Parse 'since' query parameter (in seconds)
     if (!request.url) return;
     const query = url.parse(request.url, true).query;
-    const since = query.since ? parseInt(query.since as string, 10) : Date.now() - (24 * 60 * 60 * 1000); // Default to last 24 hours
     
-    // Fetch and send historical data
-    const historicalData = getHistoricalData(smokerId, since);
-    if (historicalData.length > 0) {
-      ws.send(JSON.stringify({
-        type: 'historical',
-        data: historicalData
-      }));
+    // Only fetch and send historical data if 'since' parameter is provided
+    if (query.since) {
+      const sinceSeconds = parseInt(query.since as string, 10);
+      const since = Date.now() - (sinceSeconds * 1000);
+      
+      const historicalData = getHistoricalData(smokerId, since);
+      if (historicalData.length > 0) {
+        ws.send(JSON.stringify({
+          type: 'historical',
+          data: historicalData
+        }));
+      }
     }
     
     // Listener for new telemetry data

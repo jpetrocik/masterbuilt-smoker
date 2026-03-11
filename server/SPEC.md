@@ -6,7 +6,7 @@ Create a headless Node.js middleware service that acts as the source of truth fo
 
 ## 2. Client Application "User" Stories
 *(Note to Developer/AI: In these stories, the "User" is the front-end client application).*
-* **Discovery:** As a client app, I need to query a REST endpoint to get a list of all currently registered smokers and their online/offline status, so I can render a dashboard menu for the human user.
+* **Discovery:** As a client app, I need to query a REST endpoint to get a list of all currently registered smokers and their online/offline status, so I can render a dashboard menu for the human user. The endpoint should support filtering by status (all, online, offline) with a default of online.
 * **State Syncing:** As a client app, when I open a WebSocket connection for a specific `smokerId`, I need to optionally request the last *X* seconds of historical data, so I can immediately draw a complete temperature chart without waiting for new data to trickle in.
 * **Real-time Streaming:** As a client app, once connected via WebSocket, I need to receive pushed JSON payloads every time the hardware publishes a new temperature reading, so I can update the live UI gauges instantly.
 * **Presence Alerting:** As a client app, I need the backend to push a specific WebSocket event if the hardware drops offline (triggered by the MQTT LWT), so I can immediately alert the human user that the cook is unmonitored.
@@ -80,9 +80,9 @@ The backend must maintain a rolling window of telemetry history in SQLite. The m
 Clients connect to the backend via WebSockets to retrieve historical batches and stream real-time updates.
 * Connection Path: ws://<host>/ws/smoker/<smoker_id>/data
 * Historical Batching (Query Parameter): An optional since query parameter (representing seconds into the past) can be appended: /ws/smoker/12345/data?since=360.
-** If since is provided, the backend must immediately query SQLite for all records for that smoker_id created between now and since seconds ago, and send this batch to the client over the socket.
-** The since value cannot exceed the configured maximum history hours.
-** If no since parameter is provided, no historical batch is sent.
+  * If since is provided, the backend must immediately query SQLite for all records for that smoker_id created between now and since seconds ago, and send this batch to the client over the socket.
+  * The since value cannot exceed the configured maximum history hours.
+  * If no since parameter is provided, no historical batch is sent.
 * Continuous Streaming: Once the connection is established (and any requested historical batch is sent), the backend must push all new incoming MQTT telemetry payloads for that specific smoker_id directly to the connected WebSocket client until the client disconnects.
 
 ### 5. Success Metrics & Acceptance Criteria
@@ -90,9 +90,11 @@ Clients connect to the backend via WebSockets to retrieve historical batches and
 
 * The system gracefully catches the MQTT LWT message and updates the database state to "offline".
 
-* Connecting to ws://<host>/smoker/<smoker_id>/data?since=3600 successfully pulls the last hour of data from SQLite and transmits it over the socket before streaming live updates.
+* Connecting to ws://<host>/ws/smoker/<smoker_id>/data?since=3600 successfully pulls the last hour of data from SQLite and transmits it over the socket before streaming live updates.
 
 * The backend runs cleanly via npm start with no TypeScript errors, reading all variables from config.json.
+
+* The /api/smokers endpoint supports an optional "status" query parameter (all, online, offline) with a default of online, filtering the returned list accordingly.
 
 ### 6. Configuration File (config.json) 
 The application must read its configuration from a config.json file at the root of the project. The AI should generate a default file using the exact structure below. All database retention, server ports, and MQTT connection logic must utilize these values dynamically.

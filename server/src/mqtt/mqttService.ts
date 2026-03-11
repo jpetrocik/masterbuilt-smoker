@@ -1,5 +1,5 @@
 import mqtt from 'mqtt';
-import config from '../config';
+import config, { getBrokerUrl } from '../config';
 import { updateSmokerStatus, insertTelemetry, purgeOldHistory } from '../database/database';
 import { telemetryEmitter } from '../utils/eventEmitter';
 import { SmokerTelemetryPayload } from '../types';
@@ -7,11 +7,11 @@ import { SmokerTelemetryPayload } from '../types';
 let client: mqtt.MqttClient;
 
 export function connectMqtt(): void {
-  const brokerUrl = config.mqtt.brokerUrl;
+  const brokerUrl = getBrokerUrl();
   console.log(`Connecting to MQTT broker at ${brokerUrl}`);
   
   client = mqtt.connect(brokerUrl, {
-    clientId: 'smoker-telemetry-api-' + Math.random().toString(16).substr(2, 8),
+    clientId: config.mqtt.clientIdPrefix + Math.random().toString(16).substr(2, 8),
     clean: true,
     reconnectPeriod: 5000,
   });
@@ -56,7 +56,7 @@ export function connectMqtt(): void {
 
   // Periodic cleanup
   setInterval(() => {
-    purgeOldHistory(config.history.retentionHours);
+    purgeOldHistory(config.database.maxHistoryHours, config.database.offlinePurgeHours);
   }, 60 * 60 * 1000); // Run every hour
 }
 

@@ -22,7 +22,14 @@ router.get('/', (req, res) => {
  * /api/smokers:
  *   get:
  *     summary: List registered smokers
- *     description: Returns a list of all registered smokers and their current status.
+ *     description: Returns a list of registered smokers filtered by status.
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, online, offline]
+ *         description: Filter by status. Defaults to 'online' if not provided.
  *     responses:
  *       200:
  *         description: A list of smokers.
@@ -44,7 +51,20 @@ router.get('/', (req, res) => {
  *                     description: Timestamp of last activity.
  */
 router.get('/smokers', (req, res) => {
-  const smokers = getSmokers();
+  const statusParam = req.query.status as string;
+  let filterStatus: 'online' | 'offline' | 'all';
+  
+  if (!statusParam || statusParam === 'online') {
+    filterStatus = 'online';
+  } else if (statusParam === 'offline') {
+    filterStatus = 'offline';
+  } else if (statusParam === 'all') {
+    filterStatus = 'all';
+  } else {
+    return res.status(400).json({ error: 'Invalid status parameter. Use all, online, or offline.' });
+  }
+  
+  const smokers = getSmokers(filterStatus);
   res.json(smokers);
 });
 

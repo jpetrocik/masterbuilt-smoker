@@ -5,6 +5,7 @@ import http from 'http';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import routes from './routes';
+import config from './config';
 import { initDatabase } from './database/database';
 import { connectMqtt } from './mqtt/mqttService';
 import { createWebSocketServer } from './websocket/websocketServer';
@@ -16,7 +17,7 @@ dotenv.config();
 initDatabase();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || config.server.port;
 
 // Middleware
 app.use(cors());

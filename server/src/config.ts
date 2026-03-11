@@ -3,13 +3,20 @@ import path from 'path';
 
 interface Config {
   mqtt: {
-    brokerUrl: string;
+    host: string;
+    port: number;
+    protocol: string;
+    username?: string;
+    password?: string;
+    clientIdPrefix: string;
+  };
+  server: {
+    port: number;
   };
   database: {
     path: string;
-  };
-  history: {
-    retentionHours: number;
+    maxHistoryHours: number;
+    offlinePurgeHours: number;
   };
 }
 
@@ -23,10 +30,31 @@ try {
   console.error('Error loading config.json:', error);
   // Default config
   config = {
-    mqtt: { brokerUrl: 'mqtt://localhost:1883' },
-    database: { path: './smokers.db' },
-    history: { retentionHours: 24 }
+    mqtt: {
+      host: 'localhost',
+      port: 1883,
+      protocol: 'mqtt',
+      clientIdPrefix: 'smoker-backend-'
+    },
+    server: {
+      port: 3000
+    },
+    database: {
+      path: './data/smoker_history.db',
+      maxHistoryHours: 6,
+      offlinePurgeHours: 1
+    }
   };
+}
+
+// Construct broker URL
+export function getBrokerUrl(): string {
+  const { protocol, host, port, username, password } = config.mqtt;
+  let auth = '';
+  if (username && password) {
+    auth = `${username}:${password}@`;
+  }
+  return `${protocol}://${auth}${host}:${port}`;
 }
 
 export default config;
