@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -12,78 +12,139 @@ import { Wifi, WifiOff, Flame } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSmokerStore } from '../store/useSmokerStore';
 import { useUserPreferenceStore } from '../store/useUserPreferenceStore';
-
-// Mock Data Generation
-const generateMockData = () => {
-  const data = [];
-  for (let i = 0; i <= 12; i++) {
-    data.push({
-      hour: `${i}h`,
-      probe1: Math.round(140 + Math.random() * 20), // 140-160
-      probe2: Math.round(150 + Math.random() * 15), // 150-165
-      probe3: Math.round(145 + Math.random() * 10),
-      probe4: Math.round(155 + Math.random() * 12),
-    });
-  }
-  return data;
-};
-
-const mockData = generateMockData();
+import { useTelemetryWebSocket } from '../lib/useTelemetryWebSocket';
+import type { Smoker } from '../lib/api';
+import { getSmokers } from '../lib/api';
 
 export const SmokerDashboard: React.FC = () => {
   const { 
+    selectedSmokerId,
     isOnline, 
     isHeatOn, 
     smokerTemperature, 
     smokerTarget, 
     cookTime, 
     cookTimer, 
-    dutyCycle,
     probe1,
     probe2,
     probe3,
-    probe4
+    probe4,
+    historicalData,
+    setSelectedSmokerId,
   } = useSmokerStore();
-  const { carouselIndex, setCarouselIndex } = useUserPreferenceStore();
-  const [touchStart, setTouchStart] = React.useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = React.useState<number | null>(null);
-  const carouselRef = React.useRef<HTMLDivElement>(null);
+  
+  const { carouselIndex } = useUserPreferenceStore();
+  const [smokers, setSmokers] = useState<Smoker[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
 
-  const minSwipeDistance = 50;
+  // Load smokers on mount
+  useEffect(() => {
+    const loadSmokers = async () => {
+      try {
+        const data = await getSmokers('online');
+        setSmokers(data);
+        
+        // Auto-select logic
+        const lastSelected = localStorage.getItem('lastSelectedSmoker');
+        const availableIds = data.map(s => s.id);
+        
+        if (lastSelected && availableIds.includes(lastSelected)) {
+          setSelectedSmokerId(lastSelected);
+        } else if (data.length === 1) {
+          setSelectedSmokerId(data[0].id);
+        } else if (data.length > 1) {
+          setShowPicker(true);
+        }
+      } catch (err) {
+        console.error('Failed to load smokers:', err);
+      }
+    };
+    
+    loadSmokers();
+  }, [setSelectedSmokerId]);
 
-  // Programmatic scroll when carouselIndex changes
-  useLayoutEffect(() => {
-    if (carouselRef.current) {
-      const scrollAmount = carouselRef.current.clientWidth * carouselIndex;
-      carouselRef.current.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+  // Save selected smoker to localStorage
+  useEffect(() => {
+    if (selectedSmokerId) {
+      localStorage.setItem('lastSelectedSmoker', selectedSmokerId);
     }
-  }, [carouselIndex]);
+  }, [selectedSmokerId]);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+  // Connect to WebSocket (handles messages directly in store)
+  useTelemetryWebSocket(selectedSmokerId);
+
+  // Format time for display
+  const formatTimeDisplay = (seconds: number): string => {
+    if (!seconds || seconds <= 0) return '--:--';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
-  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && carouselIndex < 2) {
-      setCarouselIndex(carouselIndex + 1);
-    } else if (isRightSwipe && carouselIndex > 0) {
-      setCarouselIndex(carouselIndex - 1);
-    }
+  // Format temperature for display
+  const formatTemp = (temp: number | null | undefined): string => {
+    if (temp === null || temp === undefined || temp === 0) return '--';
+    return Math.round(temp).toString();
   };
+
+  // Prepare chart data from historical and live data
+  const chartData = React.useMemo(() => {
+    const dataMap = new Map<string, any>();
+    
+    // Process historical data
+    historicalData.forEach((item: any) => {
+      const timestamp = new Date(item.timestamp || Date.now()).toISOString();
+      if (!dataMap.has(timestamp)) {
+        dataMap.set(timestamp, {
+          time: timestamp,
+          smokerTemperature: item.smokerTemperature,
+          probe1: item.probe1Temperature,
+          probe2: item.probe2Temperature,
+          probe3: item.probe3Temperature,
+          probe4: item.probe4Temperature,
+        });
+      }
+    });
+    
+    // Convert to array and sort by time
+    return Array.from(dataMap.values()).sort((a, b) => 
+      new Date(a.time).getTime() - new Date(b.time).getTime()
+    );
+  }, [historicalData]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-6 pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-6 pb-20 safe-area-inset-bottom">
+      {/* Smoker Picker Dialog */}
+      {showPicker && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 rounded-xl p-6 max-w-sm w-full mx-4 border border-zinc-800">
+            <h2 className="text-xl font-bold text-orange-500 mb-4">Select Smoker</h2>
+            <div className="space-y-2">
+              {smokers.map((smoker) => (
+                <button
+                  key={smoker.id}
+                  onClick={() => {
+                    setSelectedSmokerId(smoker.id);
+                    setShowPicker(false);
+                  }}
+                  className="w-full text-left p-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
+                >
+                  <div className="font-medium">{smoker.id}</div>
+                  <div className="text-sm text-zinc-400">
+                    Last seen: {new Date(smoker.lastSeen).toLocaleString()}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-orange-500">Smoker Controller</h1>
+        <h1 className="text-2xl font-bold text-orange-500">
+          Smoker {selectedSmokerId ? `#${selectedSmokerId}` : ''}
+        </h1>
         <div className="flex items-center">
           {isOnline ? (
             <Wifi className="text-orange-500" size={24} />
@@ -103,13 +164,7 @@ export const SmokerDashboard: React.FC = () => {
           </div>
 
           {/* Swipeable Container */}
-          <div 
-            ref={carouselRef}
-            className="mt-4 flex overflow-x-auto snap-x snap-mandatory snap-start h-36 items-center scrollbar-hide"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
+          <div className="mt-4 flex overflow-x-auto snap-x snap-mandatory snap-start h-36 items-center scrollbar-hide">
             {/* Slide 1: Temp */}
             <div className="snap-start shrink-0 w-full flex flex-col items-center justify-center">
               <div className="flex items-center justify-center gap-2">
@@ -123,11 +178,11 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-tighter",
                   isHeatOn ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-400"
                 )}>
-                  {smokerTemperature}°
+                  {formatTemp(smokerTemperature)}°
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
-                {smokerTarget}°
+                {formatTemp(smokerTarget)}°
               </div>
             </div>
 
@@ -144,7 +199,7 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-widest font-mono",
                   isHeatOn ? "text-orange-500" : "text-zinc-400"
                 )}>
-                  {cookTimer}
+                  {formatTimeDisplay(cookTimer)}
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
@@ -165,7 +220,7 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-widest font-mono",
                   isHeatOn ? "text-orange-500" : "text-zinc-400"
                 )}>
-                  {cookTime}
+                  {formatTimeDisplay(cookTime)}
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
@@ -183,83 +238,78 @@ export const SmokerDashboard: React.FC = () => {
         </div>
 
         {/* Probe Cards */}
-        <div
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
-        >
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 1
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe1.temperature}°
+            {formatTemp(probe1.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
-            {probe1.target}°
+            {formatTemp(probe1.target)}°
           </div>
         </div>
-        <div
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
-        >
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 2
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe2.temperature}°
+            {formatTemp(probe2.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
-            {probe2.target}°
+            {formatTemp(probe2.target)}°
           </div>
         </div>
-        <div
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
-        >
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 3
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe3.temperature}°
+            {formatTemp(probe3.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
-            {probe3.target}°
+            {formatTemp(probe3.target)}°
           </div>
         </div>
-        <div
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center"
-        >
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 4
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe4.temperature}°
+            {formatTemp(probe4.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
-            {probe4.target}°
+            {formatTemp(probe4.target)}°
           </div>
         </div>
       </div>
 
       {/* Historical Chart Section */}
-      <div className="mt-8 bg-zinc-900 border border-zinc-800 rounded-xl p-4 h-80 flex flex-col">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 h-80 flex flex-col">
         <div className="text-zinc-300 font-semibold mb-4 text-sm tracking-wider">
           Probe Temperature History
         </div>
         <div className="flex-1 w-full min-h-0">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={mockData}
+              data={chartData}
               margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-              <XAxis
-                dataKey="hour"
-                stroke="#71717a"
-                fontSize={12}
+              <XAxis 
+                dataKey="time" 
+                stroke="#71717a" 
+                fontSize={12} 
                 tickLine={false}
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                }}
               />
-              <YAxis
-                stroke="#71717a"
-                fontSize={12}
+              <YAxis 
+                stroke="#71717a" 
+                fontSize={12} 
                 tickLine={false}
-                domain={['dataMin - 5', 'dataMax + 5']}
               />
               <Tooltip
                 contentStyle={{
@@ -268,36 +318,35 @@ export const SmokerDashboard: React.FC = () => {
                   color: '#fff',
                 }}
               />
-              {/* Probe Lines */}
-              <Line
-                type="monotone"
-                dataKey="probe1"
-                stroke="#fdba74" // Orange-300
-                strokeWidth={1.5}
+              <Line 
+                type="monotone" 
+                dataKey="probe1" 
+                stroke="#fdba74" 
+                strokeWidth={1.5} 
                 dot={false}
                 name="Probe 1"
               />
-              <Line
-                type="monotone"
-                dataKey="probe2"
-                stroke="#a1a1aa" // Zinc-400
-                strokeWidth={1.5}
+              <Line 
+                type="monotone" 
+                dataKey="probe2" 
+                stroke="#a1a1aa" 
+                strokeWidth={1.5} 
                 dot={false}
                 name="Probe 2"
               />
-              <Line
-                type="monotone"
-                dataKey="probe3"
-                stroke="#fb923c" // Orange-400
-                strokeWidth={1.5}
+              <Line 
+                type="monotone" 
+                dataKey="probe3" 
+                stroke="#fb923c" 
+                strokeWidth={1.5} 
                 dot={false}
                 name="Probe 3"
               />
-              <Line
-                type="monotone"
-                dataKey="probe4"
-                stroke="#78716c" // Stone-500
-                strokeWidth={1.5}
+              <Line 
+                type="monotone" 
+                dataKey="probe4" 
+                stroke="#78716c" 
+                strokeWidth={1.5} 
                 dot={false}
                 name="Probe 4"
               />
