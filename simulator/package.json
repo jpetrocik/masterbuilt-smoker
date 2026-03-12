@@ -1,0 +1,20 @@
+{
+  "name": "smoker-simulator",
+  "version": "1.0.0",
+  "description": "Node.js-based smoker simulator for testing backend and frontend",
+  "main": "simulator.js",
+  "scripts": {
+    "start": "node simulator.js",
+    "dev": "node simulator.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.0.0"
+  },
+  "keywords": [
+    "smoker",
+    "simulator",
+    "mqtt"
+  ],
+  "author": "",
+  "license": "ISC"
+}

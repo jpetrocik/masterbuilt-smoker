@@ -1,0 +1,6 @@
+{
+  "smokerId": "1234567",
+  "mqttBroker": "mqtt://hermes:1883",
+  "publishInterval": 5000,
+  "activeProbes": 1
+}
