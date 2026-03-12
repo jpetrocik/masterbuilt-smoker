@@ -35,16 +35,16 @@ export function initDatabase(): void {
       duty_cycle REAL,
       probe1_temperature REAL,
       probe1_target REAL,
-      probe1_alarm BOOLEAN,
+      probe1_alarm INTEGER,
       probe2_temperature REAL,
       probe2_target REAL,
-      probe2_alarm BOOLEAN,
+      probe2_alarm INTEGER,
       probe3_temperature REAL,
       probe3_target REAL,
-      probe3_alarm BOOLEAN,
+      probe3_alarm INTEGER,
       probe4_temperature REAL,
       probe4_target REAL,
-      probe4_alarm BOOLEAN,
+      probe4_alarm INTEGER,
       FOREIGN KEY (smoker_id) REFERENCES smokers(id) ON DELETE CASCADE
     )
   `);
@@ -67,7 +67,7 @@ export function insertTelemetry(smokerId: string, payload: SmokerTelemetryPayloa
       probe2_temperature, probe2_target, probe2_alarm,
       probe3_temperature, probe3_target, probe3_alarm,
       probe4_temperature, probe4_target, probe4_alarm
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
   stmt.run(
@@ -80,20 +80,20 @@ export function insertTelemetry(smokerId: string, payload: SmokerTelemetryPayloa
     payload.dutyCycle ?? null,
     payload.probe1Temperature ?? null,
     payload.probe1Target ?? null,
-    payload.probe1Alarm ?? null,
+    payload.probe1Alarm ? 1 : 0,
     payload.probe2Temperature ?? null,
     payload.probe2Target ?? null,
-    payload.probe2Alarm ?? null,
+    payload.probe2Alarm ? 1 : 0,
     payload.probe3Temperature ?? null,
     payload.probe3Target ?? null,
-    payload.probe3Alarm ?? null,
+    payload.probe3Alarm ? 1 : 0,
     payload.probe4Temperature ?? null,
     payload.probe4Target ?? null,
-    payload.probe4Alarm ?? null
+    payload.probe4Alarm ? 1 : 0 
   );
   
   // Update smoker status
-  updateSmokerStatus(smokerId, 'online');
+  //updateSmokerStatus(smokerId, 'online');
 }
 
 export function updateSmokerStatus(smokerId: string, status: 'online' | 'offline'): void {
