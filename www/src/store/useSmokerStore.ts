@@ -1,17 +1,19 @@
 import { create } from 'zustand';
 
 interface ProbeState {
-  current: number;
+  temperature: number;
   target: number;
+  alarm: boolean;
 }
 
 interface SmokerState {
   isOnline: boolean;
   isHeatOn: boolean;
-  smokerTemp: number;
+  smokerTemperature: number;
   smokerTarget: number;
-  elapsedCookTime: string;
+  cookTime: string;
   cookTimer: string;
+  dutyCycle: number;
   probe1: ProbeState;
   probe2: ProbeState;
   probe3: ProbeState;
@@ -23,14 +25,15 @@ interface SmokerState {
 export const useSmokerStore = create<SmokerState>((set) => ({
   isOnline: true,
   isHeatOn: false,
-  smokerTemp: 224,
+  smokerTemperature: 224,
   smokerTarget: 225,
-  elapsedCookTime: "06:35",
+  cookTime: "06:35",
   cookTimer: "04:34",
-  probe1: { current: 145, target: 165 },
-  probe2: { current: 151, target: 160 },
-  probe3: { current: 148, target: 155 },
-  probe4: { current: 153, target: 170 },
+  dutyCycle: 0.75,
+  probe1: { temperature: 145, target: 165, alarm: false },
+  probe2: { temperature: 151, target: 160, alarm: false },
+  probe3: { temperature: 148, target: 155, alarm: false },
+  probe4: { temperature: 153, target: 170, alarm: false },
   toggleOnline: () => set((state) => ({ isOnline: !state.isOnline })),
   toggleHeat: () => set((state) => ({ isHeatOn: !state.isHeatOn })),
 }));

@@ -28,17 +28,23 @@ export function initDatabase(): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       smoker_id TEXT NOT NULL,
       timestamp INTEGER NOT NULL,
-      temperature REAL,
-      target_temperature REAL,
+      smoker_temperature REAL,
+      smoker_target REAL,
       cook_timer INTEGER,
-      probe1 REAL,
-      target_probe1 REAL,
-      probe2 REAL,
-      target_probe2 REAL,
-      probe3 REAL,
-      target_probe3 REAL,
-      probe4 REAL,
-      target_probe4 REAL,
+      cook_time INTEGER,
+      duty_cycle REAL,
+      probe1_temperature REAL,
+      probe1_target REAL,
+      probe1_alarm BOOLEAN,
+      probe2_temperature REAL,
+      probe2_target REAL,
+      probe2_alarm BOOLEAN,
+      probe3_temperature REAL,
+      probe3_target REAL,
+      probe3_alarm BOOLEAN,
+      probe4_temperature REAL,
+      probe4_target REAL,
+      probe4_alarm BOOLEAN,
       FOREIGN KEY (smoker_id) REFERENCES smokers(id) ON DELETE CASCADE
     )
   `);
@@ -56,26 +62,34 @@ export function insertTelemetry(smokerId: string, payload: SmokerTelemetryPayloa
   // Insert into cook_history
   const stmt = db.prepare(`
     INSERT INTO cook_history (
-      smoker_id, timestamp, temperature, target_temperature, cook_timer,
-      probe1, target_probe1, probe2, target_probe2,
-      probe3, target_probe3, probe4, target_probe4
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      smoker_id, timestamp, smoker_temperature, smoker_target, cook_timer, cook_time, duty_cycle,
+      probe1_temperature, probe1_target, probe1_alarm,
+      probe2_temperature, probe2_target, probe2_alarm,
+      probe3_temperature, probe3_target, probe3_alarm,
+      probe4_temperature, probe4_target, probe4_alarm
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
   stmt.run(
     smokerId,
     timestamp,
-    payload.temperature,
-    payload.targetTemperature,
+    payload.smokerTemperature,
+    payload.smokerTarget,
     payload.cookTimer,
-    payload.probe1 ?? null,
-    payload.targetProbe1 ?? null,
-    payload.probe2 ?? null,
-    payload.targetProbe2 ?? null,
-    payload.probe3 ?? null,
-    payload.targetProbe3 ?? null,
-    payload.probe4 ?? null,
-    payload.targetProbe4 ?? null
+    payload.cookTime ?? null,
+    payload.dutyCycle ?? null,
+    payload.probe1Temperature ?? null,
+    payload.probe1Target ?? null,
+    payload.probe1Alarm ?? null,
+    payload.probe2Temperature ?? null,
+    payload.probe2Target ?? null,
+    payload.probe2Alarm ?? null,
+    payload.probe3Temperature ?? null,
+    payload.probe3Target ?? null,
+    payload.probe3Alarm ?? null,
+    payload.probe4Temperature ?? null,
+    payload.probe4Target ?? null,
+    payload.probe4Alarm ?? null
   );
   
   // Update smoker status

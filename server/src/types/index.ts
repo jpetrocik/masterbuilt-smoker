@@ -1,15 +1,21 @@
 export interface SmokerTelemetryPayload {
-  temperature: number;
-  targetTemperature: number;
+  smokerTemperature: number;
+  smokerTarget: number;
   cookTimer: number;
-  probe1?: number;
-  targetProbe1?: number;
-  probe2?: number;
-  targetProbe2?: number;
-  probe3?: number;
-  targetProbe3?: number;
-  probe4?: number;
-  targetProbe4?: number;
+  cookTime?: number;
+  dutyCycle?: number;
+  probe1Temperature?: number;
+  probe1Target?: number;
+  probe1Alarm?: boolean;
+  probe2Temperature?: number;
+  probe2Target?: number;
+  probe2Alarm?: boolean;
+  probe3Temperature?: number;
+  probe3Target?: number;
+  probe3Alarm?: boolean;
+  probe4Temperature?: number;
+  probe4Target?: number;
+  probe4Alarm?: boolean;
 }
 
 export interface SmokerState {
@@ -22,15 +28,21 @@ export interface CookHistoryRow {
   id: number;
   smokerId: string;
   timestamp: number;
-  temperature: number;
-  targetTemperature: number;
+  smokerTemperature: number;
+  smokerTarget: number;
   cookTimer: number;
-  probe1?: number;
-  targetProbe1?: number;
-  probe2?: number;
-  targetProbe2?: number;
-  probe3?: number;
-  targetProbe3?: number;
-  probe4?: number;
-  targetProbe4?: number;
+  cookTime?: number;
+  dutyCycle?: number;
+  probe1Temperature?: number;
+  probe1Target?: number;
+  probe1Alarm?: boolean;
+  probe2Temperature?: number;
+  probe2Target?: number;
+  probe2Alarm?: boolean;
+  probe3Temperature?: number;
+  probe3Target?: number;
+  probe3Alarm?: boolean;
+  probe4Temperature?: number;
+  probe4Target?: number;
+  probe4Alarm?: boolean;
 }

@@ -230,27 +230,27 @@ function generateTelemetry() {
 // Build JSON payload matching firmware structure
 function buildPayload() {
   const payload = {
-    temperature: Math.round(state.temperature * 10) / 10,
-    targetTemperature: Math.round(state.targetTemperature * 10) / 10,
+    smokerTemperature: Math.round(state.temperature * 10) / 10,
+    smokerTarget: Math.round(state.targetTemperature * 10) / 10,
     cookTimer: Math.round(state.cookTimer),
     cookTime: Math.round(state.cookTime),
     dutyCycle: Math.round(state.dutyCycle * 100) / 100
   };
   
   // Include probe data for all 4 probes (matching firmware behavior)
-  // probeX is only included if temperature > 0.0
-  // targetProbeX and alarmProbeX are always included
+  // probeXTemperature is only included if temperature > 0.0
+  // probeXTarget and probeXAlarm are always included
   for (let i = 0; i < 4; i++) {
     const probeNum = i + 1;
     
-    // Only include probeX if current temperature > 0.0 (simulates missing probe)
+    // Only include probeXTemperature if current temperature > 0.0 (simulates missing probe)
     if (state.probes[i].current > 0.0) {
-      payload[`probe${probeNum}`] = Math.round(state.probes[i].current * 10) / 10;
+      payload[`probe${probeNum}Temperature`] = Math.round(state.probes[i].current * 10) / 10;
     }
     
-    // Always include targetProbeX and alarmProbeX
-    payload[`targetProbe${probeNum}`] = Math.round(state.probes[i].target * 10) / 10;
-    payload[`alarmProbe${probeNum}`] = state.probes[i].alarm;
+    // Always include probeXTarget and probeXAlarm
+    payload[`probe${probeNum}Target`] = Math.round(state.probes[i].target * 10) / 10;
+    payload[`probe${probeNum}Alarm`] = state.probes[i].alarm;
   }
   
   return payload;

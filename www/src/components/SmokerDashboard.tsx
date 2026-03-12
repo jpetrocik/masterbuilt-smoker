@@ -34,10 +34,11 @@ export const SmokerDashboard: React.FC = () => {
   const { 
     isOnline, 
     isHeatOn, 
-    smokerTemp, 
+    smokerTemperature, 
     smokerTarget, 
-    elapsedCookTime, 
+    cookTime, 
     cookTimer, 
+    dutyCycle,
     probe1,
     probe2,
     probe3,
@@ -122,7 +123,7 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-tighter",
                   isHeatOn ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-400"
                 )}>
-                  {smokerTemp}°
+                  {smokerTemperature}°
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
@@ -164,7 +165,7 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-widest font-mono",
                   isHeatOn ? "text-orange-500" : "text-zinc-400"
                 )}>
-                  {elapsedCookTime}
+                  {cookTime}
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
@@ -189,7 +190,7 @@ export const SmokerDashboard: React.FC = () => {
             Probe 1
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe1.current}°
+            {probe1.temperature}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
             {probe1.target}°
@@ -202,7 +203,7 @@ export const SmokerDashboard: React.FC = () => {
             Probe 2
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe2.current}°
+            {probe2.temperature}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
             {probe2.target}°
@@ -215,7 +216,7 @@ export const SmokerDashboard: React.FC = () => {
             Probe 3
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe3.current}°
+            {probe3.temperature}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
             {probe3.target}°
@@ -228,7 +229,7 @@ export const SmokerDashboard: React.FC = () => {
             Probe 4
           </div>
           <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
-            {probe4.current}°
+            {probe4.temperature}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
             {probe4.target}°
