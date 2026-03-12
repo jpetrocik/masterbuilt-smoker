@@ -28,7 +28,12 @@ export function useTelemetryWebSocket(
         // Handle message directly in the store
         if (message.type === 'historical') {
           const dataArray = Array.isArray(message.data) ? message.data : [message.data];
-          useSmokerStore.getState().addHistoricalData(dataArray);
+          // Add timestamps to historical data if not present
+          const dataWithTimestamps = dataArray.map((item: any) => ({
+            ...item,
+            timestamp: item.timestamp || Date.now(),
+          }));
+          useSmokerStore.getState().addHistoricalData(dataWithTimestamps);
         } else if (message.type === 'live') {
           const data = message.data as any;
           useSmokerStore.getState().updateFromTelemetry(data);

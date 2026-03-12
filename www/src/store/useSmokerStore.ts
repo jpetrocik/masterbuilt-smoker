@@ -22,6 +22,7 @@ interface SmokerState {
   historicalData: TelemetryData[];
   updateFromTelemetry: (data: TelemetryData) => void;
   addHistoricalData: (data: TelemetryData[]) => void;
+  appendLiveToHistory: (data: TelemetryData) => void;
 }
 
 export const useSmokerStore = create<SmokerState>((set, get) => ({
@@ -42,6 +43,13 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
     const MIN_TEMP = 37.0;
     const isHeatOn = data.smokerTarget > MIN_TEMP;
     
+    // Add timestamp for chart plotting
+    const dataWithTimestamp = {
+      ...data,
+      timestamp: Date.now(),
+    };
+    
+    // Update current state
     set({
       isOnline: true,
       isHeatOn,
@@ -71,9 +79,35 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
         alarm: data.probe4Alarm || false,
       },
     });
+    
+    // Append to historical data for chart
+    get().appendLiveToHistory(dataWithTimestamp);
   },
   
   addHistoricalData: (data: TelemetryData[]) => {
-    set({ historicalData: [...get().historicalData, ...data] });
+    // Merge and sort by timestamp
+    const merged = [...get().historicalData, ...data];
+    const sorted = merged.sort((a, b) => {
+      const aTime = a.timestamp || 0;
+      const bTime = b.timestamp || 0;
+      return aTime - bTime;
+    });
+    // Remove duplicates (keep last occurrence)
+    const unique = sorted.filter((item, index, self) =>
+      index === self.findIndex((t) => t.timestamp === item.timestamp)
+    );
+    set({ historicalData: unique });
+  },
+  
+  appendLiveToHistory: (data: TelemetryData) => {
+    // Add live data point to historical data for chart
+    // Limit history to prevent memory issues (keep last 100 points)
+    const history = [...get().historicalData, data];
+    const maxHistory = 100;
+    const trimmedHistory = history.length > maxHistory 
+      ? history.slice(-maxHistory) 
+      : history;
+    
+    set({ historicalData: trimmedHistory });
   },
 }));

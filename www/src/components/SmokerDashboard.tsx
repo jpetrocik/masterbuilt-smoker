@@ -83,27 +83,19 @@ export const SmokerDashboard: React.FC = () => {
 
   // Prepare chart data from historical and live data
   const chartData = React.useMemo(() => {
-    const dataMap = new Map<string, any>();
-    
-    // Process historical data
-    historicalData.forEach((item: any) => {
-      const timestamp = new Date(item.timestamp || Date.now()).toISOString();
-      if (!dataMap.has(timestamp)) {
-        dataMap.set(timestamp, {
-          time: timestamp,
-          smokerTemperature: item.smokerTemperature,
-          probe1: item.probe1Temperature,
-          probe2: item.probe2Temperature,
-          probe3: item.probe3Temperature,
-          probe4: item.probe4Temperature,
-        });
-      }
-    });
-    
-    // Convert to array and sort by time
-    return Array.from(dataMap.values()).sort((a, b) => 
-      new Date(a.time).getTime() - new Date(b.time).getTime()
-    );
+    // Map historical data to Recharts format
+    return historicalData.map((item: any, index: number) => ({
+      // Use index as x-axis value to ensure consistent spacing
+      index: index,
+      // Format time for tooltip
+      time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : `Point ${index}`,
+      // Temperature values
+      smokerTemperature: item.smokerTemperature,
+      probe1: item.probe1Temperature,
+      probe2: item.probe2Temperature,
+      probe3: item.probe3Temperature,
+      probe4: item.probe4Temperature,
+    }));
   }, [historicalData]);
 
   return (
@@ -291,14 +283,11 @@ export const SmokerDashboard: React.FC = () => {
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
               <XAxis 
-                dataKey="time" 
+                dataKey="index" 
                 stroke="#71717a" 
                 fontSize={12} 
                 tickLine={false}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-                }}
+                label={{ value: 'Time Points', position: 'insideBottom', offset: -2 }}
               />
               <YAxis 
                 stroke="#71717a" 
@@ -311,6 +300,8 @@ export const SmokerDashboard: React.FC = () => {
                   borderColor: '#27272a',
                   color: '#fff',
                 }}
+                formatter={(value: any) => [Math.round(value), 'Temperature']}
+                labelFormatter={(label) => `Point ${label}`}
               />
               <Line 
                 type="monotone" 

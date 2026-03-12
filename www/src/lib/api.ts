@@ -25,6 +25,7 @@ export interface TelemetryData {
   probe4Temperature?: number;
   probe4Target?: number;
   probe4Alarm?: boolean;
+  timestamp?: number;
 }
 
 export interface WebSocketMessage {
