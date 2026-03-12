@@ -8,7 +8,6 @@ interface ProbeState {
 }
 
 interface SmokerState {
-  selectedSmokerId: string | null;
   isOnline: boolean;
   isHeatOn: boolean;
   smokerTemperature: number | null;
@@ -21,13 +20,11 @@ interface SmokerState {
   probe3: ProbeState;
   probe4: ProbeState;
   historicalData: TelemetryData[];
-  setSelectedSmokerId: (id: string | null) => void;
   updateFromTelemetry: (data: TelemetryData) => void;
   addHistoricalData: (data: TelemetryData[]) => void;
 }
 
 export const useSmokerStore = create<SmokerState>((set, get) => ({
-  selectedSmokerId: null,
   isOnline: false,
   isHeatOn: false,
   smokerTemperature: null,
@@ -40,8 +37,6 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
   probe3: { temperature: null, target: 0, alarm: false },
   probe4: { temperature: null, target: 0, alarm: false },
   historicalData: [],
-  
-  setSelectedSmokerId: (id: string | null) => set({ selectedSmokerId: id }),
   
   updateFromTelemetry: (data: TelemetryData) => {
     const MIN_TEMP = 37.0;

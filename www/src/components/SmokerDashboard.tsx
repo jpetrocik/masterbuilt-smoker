@@ -18,7 +18,6 @@ import { getSmokers } from '../lib/api';
 
 export const SmokerDashboard: React.FC = () => {
   const { 
-    selectedSmokerId,
     isOnline, 
     isHeatOn, 
     smokerTemperature, 
@@ -30,10 +29,13 @@ export const SmokerDashboard: React.FC = () => {
     probe3,
     probe4,
     historicalData,
-    setSelectedSmokerId,
   } = useSmokerStore();
   
-  const { carouselIndex } = useUserPreferenceStore();
+  const { 
+    carouselIndex,
+    selectedSmokerId,
+    setSelectedSmokerId,
+  } = useUserPreferenceStore();
   const [smokers, setSmokers] = useState<Smoker[]>([]);
   const [showPicker, setShowPicker] = useState(false);
 
@@ -44,12 +46,11 @@ export const SmokerDashboard: React.FC = () => {
         const data = await getSmokers('online');
         setSmokers(data);
         
-        // Auto-select logic
-        const lastSelected = localStorage.getItem('lastSelectedSmoker');
+        // Auto-select logic based on persisted selectedSmokerId
         const availableIds = data.map(s => s.id);
         
-        if (lastSelected && availableIds.includes(lastSelected)) {
-          setSelectedSmokerId(lastSelected);
+        if (selectedSmokerId && availableIds.includes(selectedSmokerId)) {
+          // Selected smoker is available, no action needed
         } else if (data.length === 1) {
           setSelectedSmokerId(data[0].id);
         } else if (data.length > 1) {
@@ -61,14 +62,7 @@ export const SmokerDashboard: React.FC = () => {
     };
     
     loadSmokers();
-  }, [setSelectedSmokerId]);
-
-  // Save selected smoker to localStorage
-  useEffect(() => {
-    if (selectedSmokerId) {
-      localStorage.setItem('lastSelectedSmoker', selectedSmokerId);
-    }
-  }, [selectedSmokerId]);
+  }, [setSelectedSmokerId, selectedSmokerId]);
 
   // Connect to WebSocket (handles messages directly in store)
   useTelemetryWebSocket(selectedSmokerId);
