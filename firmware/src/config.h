@@ -49,7 +49,7 @@
 #define MQTT_STATUS_TOPIC "smoker/%d/status"
 #define MQTT_COMMAND_TOPIC "smoker/%d/command"
 #define MQTT_DEBUG_TOPIC "smoker/%d/debug"
-#define MQTT_DEVICE_TOPIC "smoker/device"
+#define MQTT_PRESENCE_TOPIC "smoker/%d/presence"
 
 #define ADS1 1
 #define ADS2 2

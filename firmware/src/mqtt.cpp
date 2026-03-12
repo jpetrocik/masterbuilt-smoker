@@ -10,6 +10,7 @@ WiFiClient mqtt_wifiClient;
 PubSubClient mqtt_client(mqtt_wifiClient);
 char *mqtt_statusTopic;
 char *mqtt_commandTopic;
+char *mqtt_presenceTopic;
 bool mqtt_inited = false;
 
 int mqtt_reconnectAttemptCounter = 0;
@@ -52,6 +53,9 @@ void mqtt_init(CommandEventHandler commandEventHandler)
     mqtt_commandTopic = (char *)malloc(strlen(MQTT_COMMAND_TOPIC) + 5 /*chipId*/ + 1) /*null*/;
     sprintf(mqtt_commandTopic, MQTT_COMMAND_TOPIC, chipId);
 
+    mqtt_presenceTopic = (char *)malloc(strlen(MQTT_PRESENCE_TOPIC) + 5 /*chipId*/ + 1 /*null*/);
+    sprintf(mqtt_presenceTopic, MQTT_PRESENCE_TOPIC, chipId);
+
     Serial.println("Connecting to MQTT Server....");
     mqtt_client.setServer(MQTT_SERVER, 1883);
     mqtt_client.setCallback(mqtt_callback);
@@ -64,14 +68,18 @@ void mqtt_connect()
     if (!mqtt_client.connected() && mqtt_nextReconnectAttempt < millis())
     {
 
-        if (mqtt_client.connect(clientId, MQTT_DEVICE_TOPIC, 0, true, ""))
+        // Configure Last Will and Testament (LWT)
+        // willTopic: presence topic
+        // willQos: 1
+        // willRetain: true
+        // willMessage: "offline"
+        if (mqtt_client.connect(clientId, mqtt_presenceTopic, 1, true, "offline"))
         {
             Serial.println("Connected to MQTT Server");
             mqtt_client.subscribe(mqtt_commandTopic);
 
-            char buffer[100];
-            sprintf(buffer, "{\"chipId\":%i, \"ipAddress\":\"%s\"}", mqtt_chipId(), WiFi.localIP().toString());
-            mqtt_client.publish(MQTT_DEVICE_TOPIC, buffer, true);
+            // Publish birth message ("online") with QoS 1 and retain true
+            mqtt_client.publish(mqtt_presenceTopic, "online", true);
 
             mqtt_reconnectAttemptCounter = 0;
             mqtt_nextReconnectAttempt = 0;
