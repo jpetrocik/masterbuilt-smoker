@@ -103,11 +103,11 @@ export const SmokerDashboard: React.FC = () => {
       // 2. Keep a formatted string just for the hover Tooltip to use
       time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
       
-      // 3. Your temperature mappings remain exactly the same
-      probe1: item.probe1Temperature,
-      probe2: item.probe2Temperature,
-      probe3: item.probe3Temperature,
-      probe4: item.probe4Temperature,
+      // 3. Your temperature mappings must handle undefined values
+      probe1: item.probe1Temperature ?? null,
+      probe2: item.probe2Temperature ?? null,
+      probe3: item.probe3Temperature ?? null,
+      probe4: item.probe4Temperature ?? null,
     }));
   }, [historicalData]);
 
@@ -302,6 +302,7 @@ export const SmokerDashboard: React.FC = () => {
                   dataKey="timestamp"
                   type="number"
                   scale="time"
+                  domain={['dataMin', 'dataMax']}
                   stroke="#71717a" 
                   fontSize={12} 
                   tickLine={false}
@@ -314,6 +315,7 @@ export const SmokerDashboard: React.FC = () => {
                 tickLine={false}
                 allowDecimals={false}
                 tickFormatter={(value) => `${value}°`}
+                domain={[50, 350]}
               />              
               <Tooltip
                 contentStyle={{

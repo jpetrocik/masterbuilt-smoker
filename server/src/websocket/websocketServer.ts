@@ -3,7 +3,7 @@ import http from 'http';
 import url from 'url';
 import { getHistoricalData } from '../database/database';
 import { telemetryEmitter } from '../utils/eventEmitter';
-import { SmokerTelemetryPayload } from '../types';
+import { SmokerTelemetryData, SmokerTelemetryPayload } from '../types';
 import { publishCommand } from '../mqtt/mqttService';
 
 export function createWebSocketServer(server: http.Server): void {
@@ -32,7 +32,7 @@ export function createWebSocketServer(server: http.Server): void {
   });
 
   wss.on('connection', (ws: WebSocket, request: http.IncomingMessage, smokerId: string) => {
-    console.log(`WebSocket connected for smoker: ${smokerId}`);
+    console.log(`[WebSocket] Connection established for smoker: ${smokerId}`);
     
     // Parse 'since' query parameter (in seconds)
     if (!request.url) return;
@@ -44,6 +44,7 @@ export function createWebSocketServer(server: http.Server): void {
       const since = Date.now() - (sinceSeconds * 1000);
       
       const historicalData = getHistoricalData(smokerId, since);
+      console.log(`[WebSocket] Fetching historical data for ${smokerId} since ${new Date(since).toISOString()}: ${historicalData.length} records`);
       if (historicalData.length > 0) {
         ws.send(JSON.stringify({
           type: 'historical',
@@ -55,9 +56,15 @@ export function createWebSocketServer(server: http.Server): void {
     // Listener for new telemetry data
     const onTelemetry = (payload: { smokerId: string; data: SmokerTelemetryPayload }) => {
       if (payload.smokerId === smokerId) {
+        const liveCookHistory: SmokerTelemetryData = {
+          ...payload.data,
+          smokerId: payload.smokerId,
+          timestamp: Date.now(),
+        };
+
         ws.send(JSON.stringify({
           type: 'live',
-          data: payload.data
+          data: liveCookHistory
         }));
       }
     };

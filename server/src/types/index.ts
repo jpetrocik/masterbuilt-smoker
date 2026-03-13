@@ -1,3 +1,9 @@
+export interface SmokerState {
+  id: string;
+  status: 'online' | 'offline';
+  lastSeen: number;
+}
+
 export interface SmokerTelemetryPayload {
   smokerTemperature: number;
   smokerTarget: number;
@@ -18,14 +24,7 @@ export interface SmokerTelemetryPayload {
   probe4Alarm?: boolean;
 }
 
-export interface SmokerState {
-  id: string;
-  status: 'online' | 'offline';
-  lastSeen: number;
-}
-
-export interface CookHistoryRow {
-  id: number;
+export interface SmokerTelemetryData {
   smokerId: string;
   timestamp: number;
   smokerTemperature: number;
@@ -46,3 +45,9 @@ export interface CookHistoryRow {
   probe4Target?: number;
   probe4Alarm?: boolean;
 }
+
+export interface CookHistoryRow extends SmokerTelemetryData {
+  id: number;
+}
+
+

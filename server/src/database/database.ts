@@ -18,41 +18,41 @@ export function initDatabase(): void {
     CREATE TABLE IF NOT EXISTS smokers (
       id TEXT PRIMARY KEY,
       status TEXT NOT NULL,
-      last_seen INTEGER NOT NULL
+      lastSeen INTEGER NOT NULL
     )
   `);
   
-  // Create cook_history table
+// Create cook_history table
   db.exec(`
     CREATE TABLE IF NOT EXISTS cook_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      smoker_id TEXT NOT NULL,
+      smokerId TEXT NOT NULL,
       timestamp INTEGER NOT NULL,
-      smoker_temperature REAL,
-      smoker_target REAL,
-      cook_timer INTEGER,
-      cook_time INTEGER,
-      duty_cycle REAL,
-      probe1_temperature REAL,
-      probe1_target REAL,
-      probe1_alarm INTEGER,
-      probe2_temperature REAL,
-      probe2_target REAL,
-      probe2_alarm INTEGER,
-      probe3_temperature REAL,
-      probe3_target REAL,
-      probe3_alarm INTEGER,
-      probe4_temperature REAL,
-      probe4_target REAL,
-      probe4_alarm INTEGER,
-      FOREIGN KEY (smoker_id) REFERENCES smokers(id) ON DELETE CASCADE
+      smokerTemperature REAL,
+      smokerTarget REAL,
+      cookTimer INTEGER,
+      cookTime INTEGER,
+      dutyCycle REAL,
+      probe1Temperature REAL,
+      probe1Target REAL,
+      probe1Alarm INTEGER,
+      probe2Temperature REAL,
+      probe2Target REAL,
+      probe2Alarm INTEGER,
+      probe3Temperature REAL,
+      probe3Target REAL,
+      probe3Alarm INTEGER,
+      probe4Temperature REAL,
+      probe4Target REAL,
+      probe4Alarm INTEGER,
+      FOREIGN KEY (smokerId) REFERENCES smokers(id) ON DELETE CASCADE
     )
   `);
   
   // Create index for faster queries
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_cook_history_smoker_timestamp 
-    ON cook_history(smoker_id, timestamp)
+    ON cook_history(smokerId, timestamp)
   `);
 }
 
@@ -62,11 +62,11 @@ export function insertTelemetry(smokerId: string, payload: SmokerTelemetryPayloa
   // Insert into cook_history
   const stmt = db.prepare(`
     INSERT INTO cook_history (
-      smoker_id, timestamp, smoker_temperature, smoker_target, cook_timer, cook_time, duty_cycle,
-      probe1_temperature, probe1_target, probe1_alarm,
-      probe2_temperature, probe2_target, probe2_alarm,
-      probe3_temperature, probe3_target, probe3_alarm,
-      probe4_temperature, probe4_target, probe4_alarm
+      smokerId, timestamp, smokerTemperature, smokerTarget, cookTimer, cookTime, dutyCycle,
+      probe1Temperature, probe1Target, probe1Alarm,
+      probe2Temperature, probe2Target, probe2Alarm,
+      probe3Temperature, probe3Target, probe3Alarm,
+      probe4Temperature, probe4Target, probe4Alarm
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
@@ -100,7 +100,7 @@ export function updateSmokerStatus(smokerId: string, status: 'online' | 'offline
   const timestamp = Date.now();
   
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO smokers (id, status, last_seen)
+    INSERT OR REPLACE INTO smokers (id, status, lastSeen)
     VALUES (?, ?, ?)
   `);
   
@@ -108,7 +108,7 @@ export function updateSmokerStatus(smokerId: string, status: 'online' | 'offline
 }
 
 export function getSmokers(filterStatus?: 'online' | 'offline' | 'all'): { id: string; status: string; lastSeen: number }[] {
-  let sql = 'SELECT id, status, last_seen as lastSeen FROM smokers';
+  let sql = 'SELECT id, status, lastSeen FROM smokers';
   
   if (filterStatus && filterStatus !== 'all') {
     sql += ' WHERE status = ?';
@@ -123,7 +123,7 @@ export function getSmokers(filterStatus?: 'online' | 'offline' | 'all'): { id: s
 export function getHistoricalData(smokerId: string, since: number): CookHistoryRow[] {
   const stmt = db.prepare(`
     SELECT * FROM cook_history 
-    WHERE smoker_id = ? AND timestamp >= ? 
+    WHERE smokerId = ? AND timestamp >= ? 
     ORDER BY timestamp ASC
   `);
   
@@ -141,10 +141,10 @@ export function purgeOldHistory(retentionHours: number, offlinePurgeHours: numbe
   globalStmt.run(globalCutoff);
   
   // Purge history for smokers that have been offline for too long
-  // First, get smokers that are offline and last_seen < offlineCutoff
+  // First, get smokers that are offline and lastSeen < offlineCutoff
   const offlineSmokersStmt = db.prepare(`
     SELECT id FROM smokers 
-    WHERE status = 'offline' AND last_seen < ?
+    WHERE status = 'offline' AND lastSeen < ?
   `);
   const offlineSmokers = offlineSmokersStmt.all(offlineCutoff) as { id: string }[];
   
@@ -154,7 +154,7 @@ export function purgeOldHistory(retentionHours: number, offlinePurgeHours: numbe
     // Delete history for these smokers
     const placeholders = smokerIds.map(() => '?').join(',');
     const deleteHistoryStmt = db.prepare(`
-      DELETE FROM cook_history WHERE smoker_id IN (${placeholders})
+      DELETE FROM cook_history WHERE smokerId IN (${placeholders})
     `);
     deleteHistoryStmt.run(...smokerIds);
     

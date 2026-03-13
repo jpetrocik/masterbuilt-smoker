@@ -39,6 +39,8 @@ export function connectMqtt(): void {
     const smokerId = topicParts[1];
     const messageType = topicParts[2];
     
+    console.log(`[MQTT] Message received: topic=${topic}, type=${messageType}`);
+    
     if (messageType === 'presence') {
       handlePresenceMessage(smokerId, messageStr);
     } else if (messageType === 'status') {
@@ -68,7 +70,9 @@ function handlePresenceMessage(smokerId: string, payload: string): void {
 
 function handleStatusMessage(smokerId: string, payload: string): void {
   try {
+    // console.log(`Parsing status message for ${smokerId}:`, payload);
     const data: SmokerTelemetryPayload = JSON.parse(payload);
+    // console.log(`Parsed data:`, data);
     insertTelemetry(smokerId, data);
     
     // Broadcast to WebSocket clients
