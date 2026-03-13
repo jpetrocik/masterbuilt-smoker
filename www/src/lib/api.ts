@@ -49,7 +49,7 @@ export async function registerFcmToken(smokerId: string, fcmToken: string): Prom
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ smokerId, fcmToken }),
+    body: JSON.stringify({ smokerId, token: fcmToken }),
   });
   if (!response.ok) {
     throw new Error(`Failed to register FCM token: ${response.statusText}`);

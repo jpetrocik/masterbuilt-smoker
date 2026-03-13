@@ -24,6 +24,7 @@ interface SmokerState {
   historicalData: TelemetryData[];
   updateFromTelemetry: (data: TelemetryData) => void;
   initHistoricalData: (data: TelemetryData[]) => void;
+  nextThreshold: number; // Timestamp for the next 1-minute threshold
 }
 
 export const useSmokerStore = create<SmokerState>((set, get) => ({
@@ -39,12 +40,35 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
   probe3: { temperature: null, target: 0, alarm: false },
   probe4: { temperature: null, target: 0, alarm: false },
   historicalData: [],
-  
-  updateFromTelemetry: (data: TelemetryData) => {
+  nextThreshold: 0,
+
+updateFromTelemetry: (data: TelemetryData) => {
+
+  if (!data.timestamp) {
+    console.warn('Received telemetry data without timestamp, ignoring:', data);
+    return;
+  }
+
     const MIN_TEMP = 37.0;
     const isHeatOn = data.smokerTarget > MIN_TEMP;
-        
+    
+    // 2. Default to keeping the chart exactly as it is
+    const currentState = get();
+    let updatedHistoricalData = currentState.historicalData;
+    let updatedNextThreshold = currentState.nextThreshold;
+
+    // 3. The Downsampling Check
+    if (data.timestamp >= currentState.nextThreshold) {
+      // The minute has rolled over! Append the new dot and enforce the 6-hour memory limit (360 points)
+      updatedHistoricalData = [...currentState.historicalData, data].slice(-360);
+      
+      // Calculate the next 1-minute tripwire
+      updatedNextThreshold = data.timestamp - (data.timestamp % 60000) + 60000;
+    }
+
+    // 4. Update the Store
     set({
+      // These fast-changing properties update every 5 seconds for your UI dials
       isOnline: true,
       isHeatOn,
       smokerTemperature: data.smokerTemperature,
@@ -72,16 +96,36 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
         target: data.probe4Target || 0,
         alarm: data.probe4Alarm || false,
       },
-      historicalData: [...get().historicalData, data].slice(-360), // Append and trim
+      
+      // These only change once a minute to keep Recharts performing smoothly
+      historicalData: updatedHistoricalData,
+      nextThreshold: updatedNextThreshold,
     });
   },
-  
+
   initHistoricalData: (data: TelemetryData[]) => {
-    // 1. Filter out any corrupt data without a timestamp
+    // 1. Filter out any corrupt data without a timestamp and sort chronologically
     const processedData = data
       .filter(item => item.timestamp)
       .sort((a, b) => a.timestamp! - b.timestamp!);
 
-    set({ historicalData: processedData });
+    // 2. The 1-Minute Downsampling Algorithm
+    const downsampled: TelemetryData[] = [];
+    let nextThreshold = get().nextThreshold || 0;
+
+    for (const item of processedData) {
+      if (item.timestamp! >= nextThreshold) {
+        // We crossed the threshold, so keep this record!
+        downsampled.push(item);
+        
+        // Calculate the next threshold: 
+        // Snap the current timestamp to the :00 second mark of its minute, 
+        // then add exactly 1 minute (60000ms) to set the next tripwire.
+        nextThreshold = item.timestamp! - (item.timestamp! % 60000) + 60000;
+      }
+    }
+
+    // 3. Save the clean, lightweight array to state
+    set({ nextThreshold: nextThreshold, historicalData: downsampled });
   },
 }));

@@ -54,17 +54,12 @@ export function createWebSocketServer(server: http.Server): void {
     }
     
     // Listener for new telemetry data
-    const onTelemetry = (payload: { smokerId: string; data: SmokerTelemetryPayload }) => {
-      if (payload.smokerId === smokerId) {
-        const liveCookHistory: SmokerTelemetryData = {
-          ...payload.data,
-          smokerId: payload.smokerId,
-          timestamp: Date.now(),
-        };
+    const onTelemetry = (smokerTelemetryData: SmokerTelemetryData) => {
+      if (smokerTelemetryData.smokerId === smokerId) {
 
         ws.send(JSON.stringify({
           type: 'live',
-          data: liveCookHistory
+          data: smokerTelemetryData
         }));
       }
     };

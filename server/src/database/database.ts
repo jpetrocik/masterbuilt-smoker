@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import config from '../config';
-import { SmokerTelemetryPayload, CookHistoryRow } from '../types';
+import { SmokerTelemetryPayload, CookHistoryRow, SmokerTelemetryData } from '../types';
 
 // Initialize database
 const dbPath = path.resolve(config.database.path);
@@ -49,6 +49,17 @@ export function initDatabase(): void {
     )
   `);
   
+  // Create fcm_tokens table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fcm_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      smokerId TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (smokerId) REFERENCES smokers(id) ON DELETE CASCADE
+    )
+  `);
+  
   // Create index for faster queries
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_cook_history_smoker_timestamp 
@@ -56,8 +67,21 @@ export function initDatabase(): void {
   `);
 }
 
-export function insertTelemetry(smokerId: string, payload: SmokerTelemetryPayload): void {
-  const timestamp = Date.now();
+export function registerFcmToken(smokerId: string, token: string): void {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO fcm_tokens (smokerId, token, updated_at)
+    VALUES (?, ?, ?)
+  `);
+  stmt.run(smokerId, token, Date.now());
+}
+
+export function getTokensForSmoker(smokerId: string): string[] {
+  const stmt = db.prepare('SELECT token FROM fcm_tokens WHERE smokerId = ?');
+  const results = stmt.all(smokerId) as { token: string }[];
+  return results.map(row => row.token);
+}
+
+export function insertTelemetry(data: SmokerTelemetryData): void {
   
   // Insert into cook_history
   const stmt = db.prepare(`
@@ -71,25 +95,25 @@ export function insertTelemetry(smokerId: string, payload: SmokerTelemetryPayloa
   `);
   
   stmt.run(
-    smokerId,
-    timestamp,
-    payload.smokerTemperature,
-    payload.smokerTarget,
-    payload.cookTimer,
-    payload.cookTime ?? null,
-    payload.dutyCycle ?? null,
-    payload.probe1Temperature ?? null,
-    payload.probe1Target ?? null,
-    payload.probe1Alarm ? 1 : 0,
-    payload.probe2Temperature ?? null,
-    payload.probe2Target ?? null,
-    payload.probe2Alarm ? 1 : 0,
-    payload.probe3Temperature ?? null,
-    payload.probe3Target ?? null,
-    payload.probe3Alarm ? 1 : 0,
-    payload.probe4Temperature ?? null,
-    payload.probe4Target ?? null,
-    payload.probe4Alarm ? 1 : 0 
+    data.smokerId,
+    data.timestamp,
+    data.smokerTemperature,
+    data.smokerTarget,
+    data.cookTimer,
+    data.cookTime ?? null,
+    data.dutyCycle ?? null,
+    data.probe1Temperature ?? null,
+    data.probe1Target ?? null,
+    data.probe1Alarm ? 1 : 0,
+    data.probe2Temperature ?? null,
+    data.probe2Target ?? null,
+    data.probe2Alarm ? 1 : 0,
+    data.probe3Temperature ?? null,
+    data.probe3Target ?? null,
+    data.probe3Alarm ? 1 : 0,
+    data.probe4Temperature ?? null,
+    data.probe4Target ?? null,
+    data.probe4Alarm ? 1 : 0 
   );
   
   // Update smoker status

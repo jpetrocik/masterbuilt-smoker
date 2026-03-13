@@ -2,7 +2,7 @@ import mqtt from 'mqtt';
 import config, { getBrokerUrl } from '../config';
 import { updateSmokerStatus, insertTelemetry, purgeOldHistory } from '../database/database';
 import { telemetryEmitter } from '../utils/eventEmitter';
-import { SmokerTelemetryPayload } from '../types';
+import { SmokerTelemetryData, SmokerTelemetryPayload } from '../types';
 
 let client: mqtt.MqttClient;
 
@@ -72,11 +72,18 @@ function handleStatusMessage(smokerId: string, payload: string): void {
   try {
     // console.log(`Parsing status message for ${smokerId}:`, payload);
     const data: SmokerTelemetryPayload = JSON.parse(payload);
+
+    const timestampedData: SmokerTelemetryData = {
+      ...data,
+      smokerId: smokerId,
+      timestamp: Date.now(),
+    };
+
     // console.log(`Parsed data:`, data);
-    insertTelemetry(smokerId, data);
+    insertTelemetry(timestampedData);
     
     // Broadcast to WebSocket clients
-    telemetryEmitter.emit('telemetry', { smokerId, data });
+    telemetryEmitter.emit('telemetry', timestampedData);
   } catch (err) {
     console.error(`Failed to parse status message for ${smokerId}:`, err);
   }

@@ -5,10 +5,12 @@ import http from 'http';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import routes from './routes';
+import fcmRoutes from './routes/fcmRoutes';
 import config from './config';
 import { initDatabase } from './database/database';
 import { connectMqtt } from './mqtt/mqttService';
 import { createWebSocketServer } from './websocket/websocketServer';
+import { initNotificationService } from './notifications/notificationService';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +33,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api', routes);
+app.use('/api/fcm', fcmRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -39,6 +42,9 @@ app.get('/', (req, res) => {
 
 // Connect to MQTT broker
 connectMqtt();
+
+// Initialize Notification Service
+initNotificationService();
 
 // Swagger setup (development only)
 if (process.env.NODE_ENV === 'development') {

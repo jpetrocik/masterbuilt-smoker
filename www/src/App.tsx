@@ -1,13 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SmokerDashboard } from './components/SmokerDashboard';
-import { isIOS, isStandalone } from './lib/firebase';
+import { isIOS, isStandalone, getFCMToken, initFirebase } from './lib/firebase';
+import { registerFcmToken } from './lib/api';
+import { useUserPreferenceStore } from './store/useUserPreferenceStore';
 import './App.css';
+import { getMessaging, onMessage } from 'firebase/messaging';
 
 function App() {
   const [showIOSBanner, setShowIOSBanner] = useState(() => {
     // Initialize state based on the check, runs only once
     return isIOS() && !isStandalone();
   });
+  const selectedSmokerId = useUserPreferenceStore((state) => state.selectedSmokerId);
+
+  // Request notification permissions and register FCM token
+  useEffect(() => {
+    const registerToken = async () => {
+      if (selectedSmokerId) {
+        try {
+          const token = await getFCMToken();
+          if (token) {
+            await registerFcmToken(selectedSmokerId, token);
+            console.log('FCM token registered successfully');
+          }
+        } catch (err) {
+          console.error('Failed to register FCM token:', err);
+        }
+      }
+    };
+
+    registerToken();
+  }, [selectedSmokerId]);
+
+  // Handle foreground messages
+  useEffect(() => {
+    // Ensure Firebase is initialized before setting up the listener
+    initFirebase().then(messaging => {
+      if (messaging) {
+        const unsubscribe = onMessage(messaging, (payload) => {
+          console.log('Foreground message received.', payload);
+          alert(`Title: ${payload.notification?.title}\\nBody: ${payload.notification?.body}`);
+        });
+
+        return () => {
+          unsubscribe();
+        };
+      }
+    });
+  }, []);
 
   return (
     <div className="dark">
@@ -29,5 +69,6 @@ function App() {
     </div>
   );
 }
+
 
 export default App;
