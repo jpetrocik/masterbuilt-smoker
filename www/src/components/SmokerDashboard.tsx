@@ -96,48 +96,20 @@ export const SmokerDashboard: React.FC = () => {
 
   // Prepare chart data from historical and live data
   const chartData = React.useMemo(() => {
-    console.log(`[SmokerDashboard] Generating chart data from ${historicalData.length} historical records`);
-    // Map historical data to Recharts format
-    return historicalData.map((item: any, index: number) => ({
-      // Use index as x-axis value to ensure consistent spacing
-      index: index,
-      // Store raw timestamp for tick calculation
-      timestamp: item.timestamp,
-      // Format time for tooltip (24-hour format)
-      time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString('en-US', { hour12: false }) : `Point ${index}`,
-      // Temperature values
-      smokerTemperature: item.smokerTemperature,
+    return historicalData.map((item) => ({
+      // 1. Keep the raw numerical timestamp. This becomes our true X-axis value.
+      timestamp: item.timestamp, 
+      
+      // 2. Keep a formatted string just for the hover Tooltip to use
+      time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+      
+      // 3. Your temperature mappings remain exactly the same
       probe1: item.probe1Temperature,
       probe2: item.probe2Temperature,
       probe3: item.probe3Temperature,
       probe4: item.probe4Temperature,
     }));
   }, [historicalData]);
-
-  // Compute X-axis ticks for top of each hour
-  const xAxisTicks = React.useMemo(() => {
-    const ticks: number[] = [];
-    let lastHour: number | null = null;
-    
-    chartData.forEach((item, index) => {
-      if (!item.timestamp) return;
-      const date = new Date(item.timestamp);
-      const currentHour = date.getHours();
-      
-      // If hour changed, add this index as a tick
-      if (lastHour !== null && currentHour !== lastHour) {
-        ticks.push(index);
-      }
-      lastHour = currentHour;
-    });
-    
-    // Always include the first point if it exists
-    if (chartData.length > 0) {
-      ticks.unshift(0);
-    }
-    
-    return ticks;
-  }, [chartData]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-6 pb-20 safe-area-inset-bottom">
@@ -326,37 +298,36 @@ export const SmokerDashboard: React.FC = () => {
               margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-              <XAxis 
-                dataKey="index" 
-                stroke="#71717a" 
-                fontSize={12} 
-                tickLine={false}
-                ticks={xAxisTicks}
-                tickFormatter={(value) => {
-                  const item = chartData[value];
-                  if (!item || !item.time) return '';
-                  // Extract hour from time string (e.g., "16:30:45" -> "16")
-                  const parts = item.time.split(':');
-                  if (parts.length >= 1) {
-                    return parts[0];
-                  }
-                  return '';
-                }}
-                label={{ value: 'Hour (24h)', position: 'insideBottom', offset: -2 }}
-              />
+                <XAxis 
+                  dataKey="timestamp"
+                  type="number"
+                  scale="time"
+                  stroke="#71717a" 
+                  fontSize={12} 
+                  tickLine={false}
+                  tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  label={{ value: 'Hour', position: 'insideBottom', offset: -2 }}
+                />
               <YAxis 
                 stroke="#71717a" 
                 fontSize={12} 
                 tickLine={false}
-              />
+                allowDecimals={false}
+                tickFormatter={(value) => `${value}°`}
+              />              
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#18181b',
                   borderColor: '#27272a',
                   color: '#fff',
                 }}
-                formatter={(value: any) => [Math.round(value), 'Temperature']}
-                labelFormatter={(label) => `Point ${label}`}
+                formatter={(value, name) => [`${Math.round(Number(value))}°F`, name]}
+                labelFormatter={(label) => {
+                  return new Date(label).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  });
+                }}
               />
               <Line 
                 type="monotone" 

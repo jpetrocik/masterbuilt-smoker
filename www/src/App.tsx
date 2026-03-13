@@ -1,39 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { SmokerDashboard } from './components/SmokerDashboard';
-import { isIOS, isStandalone, getFCMToken } from './lib/firebase';
-import { registerFcmToken } from './lib/api';
-import { useUserPreferenceStore } from './store/useUserPreferenceStore';
+import { isIOS, isStandalone } from './lib/firebase';
 import './App.css';
 
 function App() {
-  const [showIOSBanner, setShowIOSBanner] = useState(false);
-  const selectedSmokerId = useUserPreferenceStore((state) => state.selectedSmokerId);
-
-  useEffect(() => {
-    // Check if iOS and not in standalone mode
-    if (isIOS() && !isStandalone()) {
-      setShowIOSBanner(true);
-    }
-  }, []);
-
-  // Register FCM token when smoker is selected
-  useEffect(() => {
-    const registerToken = async () => {
-      if (selectedSmokerId) {
-        try {
-          const token = await getFCMToken();
-          if (token) {
-            await registerFcmToken(selectedSmokerId, token);
-            console.log('FCM token registered successfully');
-          }
-        } catch (err) {
-          console.error('Failed to register FCM token:', err);
-        }
-      }
-    };
-
-    registerToken();
-  }, [selectedSmokerId]);
+  const [showIOSBanner, setShowIOSBanner] = useState(() => {
+    // Initialize state based on the check, runs only once
+    return isIOS() && !isStandalone();
+  });
 
   return (
     <div className="dark">

@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
+import type { FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
+import type { Messaging } from 'firebase/messaging';
 
 // Firebase configuration - these should be set via environment variables
 const firebaseConfig = {
@@ -11,8 +13,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
 };
 
-let app: any = null;
-let messaging: any = null;
+let app: FirebaseApp | null = null;
+let messaging: Messaging | null = null;
 
 export async function initFirebase() {
   try {
@@ -43,6 +45,11 @@ export async function getFCMToken(): Promise<string | null> {
       await initFirebase();
     }
 
+    if (!messaging) {
+      console.log('Firebase messaging not initialized');
+      return null;
+    }
+
     // Request permission
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
@@ -71,7 +78,7 @@ export function isIOS(): boolean {
 // Check if running in standalone mode (PWA)
 export function isStandalone(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches || 
-         (window.navigator as any).standalone === true;
+         (window.navigator as Navigator & { standalone: boolean }).standalone === true;
 }
 
 // Show iOS installation prompt

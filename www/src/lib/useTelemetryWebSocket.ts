@@ -1,24 +1,29 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { WebSocketMessage } from './api';
 import { useSmokerStore } from '../store/useSmokerStore';
 
 export function useTelemetryWebSocket(
   smokerId: string | null,
   sinceSeconds: number = 10800 // 3 hours
-): WebSocket | null {
-  const [ws, setWs] = useState<WebSocket | null>(null);
+): void {
+  const ws = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!smokerId) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/smoker/${smokerId}/data?since=${sinceSeconds}`;
+    // Use the API base URL for WebSocket connection
+    const apiHost = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+    // Extract host from API base URL
+    const wsHost = apiHost.replace(/^https?:\/\//, '');
+    const wsUrl = `${protocol}//${wsHost}/ws/smoker/${smokerId}/data?since=${sinceSeconds}`;
     
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
-      console.log('WebSocket connected');
+      console.log(`[WebSocket] Connected to ${wsUrl}`);
+      console.log(`[WebSocket] Requesting historical data since: ${new Date(Date.now() - sinceSeconds * 1000).toISOString()}`);
     };
 
     socket.onmessage = (event) => {
@@ -26,19 +31,12 @@ export function useTelemetryWebSocket(
         const message: WebSocketMessage = JSON.parse(event.data);
         
         // Handle message directly in the store
-        if (message.type === 'historical') {
-          const dataArray = Array.isArray(message.data) ? message.data : [message.data];
-          console.log(`[WebSocket] Received historical data: ${dataArray.length} records`);
-          // Add timestamps to historical data if not present
-          const dataWithTimestamps = dataArray.map((item: any) => ({
-            ...item,
-            timestamp: item.timestamp || Date.now(),
-          }));
-          useSmokerStore.getState().addHistoricalData(dataWithTimestamps);
-        } else if (message.type === 'live') {
-          const data = message.data as any;
+        if (message.type === 'historical' && Array.isArray(message.data)) {
+          console.log(`[WebSocket] Received historical data: ${message.data.length} records`);
+          useSmokerStore.getState().initHistoricalData(message.data);
+        } else if (message.type === 'live' && !Array.isArray(message.data)) {
           console.log(`[WebSocket] Received live data`);
-          useSmokerStore.getState().updateFromTelemetry(data);
+          useSmokerStore.getState().updateFromTelemetry(message.data);
         }
       } catch (err) {
         console.error('Failed to parse WebSocket message:', err);
@@ -57,7 +55,7 @@ export function useTelemetryWebSocket(
       }, 5000);
     };
 
-    setWs(socket);
+    ws.current = socket;
 
     return () => {
       socket.close();
@@ -66,6 +64,4 @@ export function useTelemetryWebSocket(
       }
     };
   }, [smokerId, sinceSeconds]);
-
-  return ws;
 }
