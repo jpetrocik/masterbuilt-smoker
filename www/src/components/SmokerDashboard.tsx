@@ -33,6 +33,7 @@ export const SmokerDashboard: React.FC = () => {
   
   const { 
     carouselIndex,
+    setCarouselIndex,
     selectedSmokerId,
     setSelectedSmokerId,
   } = useUserPreferenceStore();
@@ -67,6 +68,18 @@ export const SmokerDashboard: React.FC = () => {
   // Connect to WebSocket (handles messages directly in store)
   useTelemetryWebSocket(selectedSmokerId);
 
+  // Update carousel index based on scroll position
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const scrollLeft = target.scrollLeft;
+    const slideWidth = target.clientWidth;
+    const currentIndex = Math.round(scrollLeft / slideWidth);
+    
+    if (currentIndex !== carouselIndex) {
+      setCarouselIndex(currentIndex);
+    }
+  };
+
   // Format time for display
   const formatTimeDisplay = (seconds: number): string => {
     if (!seconds || seconds <= 0) return '--:--';
@@ -83,12 +96,15 @@ export const SmokerDashboard: React.FC = () => {
 
   // Prepare chart data from historical and live data
   const chartData = React.useMemo(() => {
+    console.log(`[SmokerDashboard] Generating chart data from ${historicalData.length} historical records`);
     // Map historical data to Recharts format
     return historicalData.map((item: any, index: number) => ({
       // Use index as x-axis value to ensure consistent spacing
       index: index,
-      // Format time for tooltip
-      time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : `Point ${index}`,
+      // Store raw timestamp for tick calculation
+      timestamp: item.timestamp,
+      // Format time for tooltip (24-hour format)
+      time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString('en-US', { hour12: false }) : `Point ${index}`,
       // Temperature values
       smokerTemperature: item.smokerTemperature,
       probe1: item.probe1Temperature,
@@ -97,6 +113,31 @@ export const SmokerDashboard: React.FC = () => {
       probe4: item.probe4Temperature,
     }));
   }, [historicalData]);
+
+  // Compute X-axis ticks for top of each hour
+  const xAxisTicks = React.useMemo(() => {
+    const ticks: number[] = [];
+    let lastHour: number | null = null;
+    
+    chartData.forEach((item, index) => {
+      if (!item.timestamp) return;
+      const date = new Date(item.timestamp);
+      const currentHour = date.getHours();
+      
+      // If hour changed, add this index as a tick
+      if (lastHour !== null && currentHour !== lastHour) {
+        ticks.push(index);
+      }
+      lastHour = currentHour;
+    });
+    
+    // Always include the first point if it exists
+    if (chartData.length > 0) {
+      ticks.unshift(0);
+    }
+    
+    return ticks;
+  }, [chartData]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-6 pb-20 safe-area-inset-bottom">
@@ -150,7 +191,10 @@ export const SmokerDashboard: React.FC = () => {
           </div>
 
           {/* Swipeable Container */}
-          <div className="mt-4 flex overflow-x-auto snap-x snap-mandatory snap-start h-36 items-center scrollbar-hide">
+          <div 
+            className="mt-4 flex overflow-x-auto snap-x snap-mandatory snap-start h-36 items-center scrollbar-hide"
+            onScroll={handleScroll}
+          >
             {/* Slide 1: Temp */}
             <div className="snap-start shrink-0 w-full flex flex-col items-center justify-center">
               <div className="flex items-center justify-center gap-2">
@@ -287,7 +331,18 @@ export const SmokerDashboard: React.FC = () => {
                 stroke="#71717a" 
                 fontSize={12} 
                 tickLine={false}
-                label={{ value: 'Time Points', position: 'insideBottom', offset: -2 }}
+                ticks={xAxisTicks}
+                tickFormatter={(value) => {
+                  const item = chartData[value];
+                  if (!item || !item.time) return '';
+                  // Extract hour from time string (e.g., "16:30:45" -> "16")
+                  const parts = item.time.split(':');
+                  if (parts.length >= 1) {
+                    return parts[0];
+                  }
+                  return '';
+                }}
+                label={{ value: 'Hour (24h)', position: 'insideBottom', offset: -2 }}
               />
               <YAxis 
                 stroke="#71717a" 

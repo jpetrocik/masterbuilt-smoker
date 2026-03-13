@@ -85,6 +85,7 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
   },
   
   addHistoricalData: (data: TelemetryData[]) => {
+    console.log(`[useSmokerStore] Adding historical data: ${data.length} records`);
     // Merge and sort by timestamp
     const merged = [...get().historicalData, ...data];
     const sorted = merged.sort((a, b) => {
@@ -92,18 +93,33 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
       const bTime = b.timestamp || 0;
       return aTime - bTime;
     });
-    // Remove duplicates (keep last occurrence)
-    const unique = sorted.filter((item, index, self) =>
-      index === self.findIndex((t) => t.timestamp === item.timestamp)
-    );
-    set({ historicalData: unique });
+    // Remove duplicates (keep last occurrence) - use Map for efficiency
+    const seen = new Map<number, TelemetryData>();
+    sorted.forEach(item => {
+      if (item.timestamp !== undefined) {
+        seen.set(item.timestamp, item);
+      }
+    });
+    // Convert back to array and sort again (Map doesn't preserve insertion order in iteration)
+    const unique = Array.from(seen.values()).sort((a, b) => {
+      const aTime = a.timestamp || 0;
+      const bTime = b.timestamp || 0;
+      return aTime - bTime;
+    });
+    // Keep only the last 360 records for the chart
+    const maxHistory = 360;
+    const trimmedHistory = unique.length > maxHistory 
+      ? unique.slice(-maxHistory) 
+      : unique;
+    console.log(`[useSmokerStore] Historical data after processing: ${trimmedHistory.length} records`);
+    set({ historicalData: trimmedHistory });
   },
   
   appendLiveToHistory: (data: TelemetryData) => {
     // Add live data point to historical data for chart
-    // Limit history to prevent memory issues (keep last 100 points)
+    // Limit history to prevent memory issues (keep last 360 points)
     const history = [...get().historicalData, data];
-    const maxHistory = 100;
+    const maxHistory = 360;
     const trimmedHistory = history.length > maxHistory 
       ? history.slice(-maxHistory) 
       : history;
