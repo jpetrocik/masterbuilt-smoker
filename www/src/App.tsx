@@ -4,9 +4,11 @@ import { isIOS, isStandalone, getFCMToken, initFirebase } from './lib/firebase';
 import { registerFcmToken } from './lib/api';
 import { useUserPreferenceStore } from './store/useUserPreferenceStore';
 import './App.css';
-import { getMessaging, onMessage } from 'firebase/messaging';
+import { onMessage } from 'firebase/messaging';
+import { CriticalAlertModal } from './components/CriticalAlertModal';
 
 function App() {
+  const [criticalAlert, setCriticalAlert] = useState<{ title: string; body: string } | null>(null);
   const [showIOSBanner, setShowIOSBanner] = useState(() => {
     // Initialize state based on the check, runs only once
     return isIOS() && !isStandalone();
@@ -39,7 +41,10 @@ function App() {
       if (messaging) {
         const unsubscribe = onMessage(messaging, (payload) => {
           console.log('Foreground message received.', payload);
-          alert(`Title: ${payload.notification?.title}\\nBody: ${payload.notification?.body}`);
+          const title = payload.data?.title || 'Alert';
+          const body = payload.data?.body || '';
+          
+          setCriticalAlert({ title, body });
         });
 
         return () => {
@@ -49,8 +54,36 @@ function App() {
     });
   }, []);
 
+  // Handle background messages via BroadcastChannel
+  useEffect(() => {
+    const channel = new BroadcastChannel('fcm-alerts');
+
+    const handleMessage = (event: MessageEvent) => {
+      console.log('Broadcast message received.', event.data);
+      const title = event.data?.title || 'Alert';
+      const body = event.data?.body || '';
+      
+      setCriticalAlert({ title, body });
+    };
+
+    channel.addEventListener('message', handleMessage);
+
+    return () => {
+      channel.removeEventListener('message', handleMessage);
+      channel.close();
+    };
+  }, []);
+
   return (
     <div className="dark">
+      {criticalAlert && (
+        <CriticalAlertModal
+          title={criticalAlert.title}
+          body={criticalAlert.body}
+          onDismiss={() => setCriticalAlert(null)}
+        />
+      )}
+
       {/* iOS Installation Banner */}
       {showIOSBanner && (
         <div className="bg-orange-600 text-white p-3 text-center text-sm">

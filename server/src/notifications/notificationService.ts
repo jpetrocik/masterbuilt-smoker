@@ -48,13 +48,18 @@ async function sendNotification(tokens: string[], title: string, body: string): 
   if (tokens.length === 0) {
     return;
   }
-  const message = {
-    notification: { title, body },
-    tokens: tokens,
-  };
 
+  const message = {
+    tokens: tokens,
+    data: {
+      title: title,
+      body: body,
+      type: 'temperature_alert' // custom flag for the frontend
+    }
+  };
+  
   try {
-    const response = await messaging.sendMulticast(message);
+    const response = await messaging.sendEachForMulticast(message);
     console.log(`[FCM] Successfully sent message to ${response.successCount} tokens.`);
     if (response.failureCount > 0) {
       response.responses.forEach(resp => {

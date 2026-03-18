@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import config from '../config';
-import { SmokerTelemetryPayload, CookHistoryRow, SmokerTelemetryData } from '../types';
+import { CookHistoryRow, SmokerTelemetryData } from '../types';
 
 // Initialize database
 const dbPath = path.resolve(config.database.path);

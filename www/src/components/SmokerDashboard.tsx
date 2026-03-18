@@ -111,6 +111,50 @@ export const SmokerDashboard: React.FC = () => {
     }));
   }, [historicalData]);
 
+  // Calculate hourly ticks for the X-axis
+  const hourlyTicks = React.useMemo(() => {
+    if (historicalData.length < 2) {
+      return [];
+    }
+
+    const getHourlyTicks = (data: typeof historicalData) => {
+      const timestamps = data.map(d => d.timestamp).filter(t => t) as number[];
+      if (timestamps.length < 2) {
+        return [];
+      }
+
+      const minTime = Math.min(...timestamps);
+      const maxTime = Math.max(...timestamps);
+
+      const start = new Date(minTime);
+      start.setMinutes(0, 0, 0);
+      start.setHours(start.getHours() + 1); 
+
+      const end = new Date(maxTime);
+      end.setMinutes(0, 0, 0);
+
+      const ticks = [];
+      let current = start.getTime();
+
+      while (current <= end.getTime()) {
+        ticks.push(current);
+        current += 3600000; // Add one hour
+      }
+      return ticks;
+    };
+
+    return getHourlyTicks(historicalData);
+  }, [historicalData]);
+
+  const formatXAxisTick = (unixTime: number): string => {
+    const date = new Date(unixTime);
+    let hours = date.getHours();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours %= 12;
+    hours = hours || 12; // the hour '0' should be '12'
+    return `${hours.toString().padStart(2, '0')}${ampm}`;
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-6 pb-20 safe-area-inset-bottom">
       {/* Smoker Picker Dialog */}
@@ -306,7 +350,8 @@ export const SmokerDashboard: React.FC = () => {
                   stroke="#71717a" 
                   fontSize={12} 
                   tickLine={false}
-                  tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  tickFormatter={formatXAxisTick}
+                  ticks={hourlyTicks}
                   label={{ value: 'Hour', position: 'insideBottom', offset: -2 }}
                 />
               <YAxis 

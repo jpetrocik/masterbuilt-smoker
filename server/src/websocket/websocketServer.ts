@@ -3,7 +3,7 @@ import http from 'http';
 import url from 'url';
 import { getHistoricalData } from '../database/database';
 import { telemetryEmitter } from '../utils/eventEmitter';
-import { SmokerTelemetryData, SmokerTelemetryPayload } from '../types';
+import { SmokerTelemetryData } from '../types';
 import { publishCommand } from '../mqtt/mqttService';
 
 export function createWebSocketServer(server: http.Server): void {

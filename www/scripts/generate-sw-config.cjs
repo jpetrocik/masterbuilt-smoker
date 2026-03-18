@@ -27,15 +27,52 @@ firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
+// 1. Manually draw the OS notification using the DATA payload
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.data.title;
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/pwa-192x192.png'
+    body: payload.data.body,
+    icon: '/pwa-192x192.png',
+    data: payload.data
   };
 
+  // Force the OS to draw the alert
   self.registration.showNotification(notificationTitle, notificationOptions);
+
+  // Attempt immediate broadcast (in case the tab is just minimized)
+  const channel = new BroadcastChannel('fcm-alerts');
+  channel.postMessage(payload.data);
+});
+
+// 2. The Click Handler (This will actually fire now!)
+self.addEventListener('notificationclick', (event) => {
+  console.log('[firebase-messaging-sw.js] Notification clicked!', event.notification.data);
+  
+  event.notification.close(); 
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      
+      // Look for an open Smoker App tab
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        const clientUrl = new URL(client.url);
+        if (clientUrl.origin === self.location.origin && 'focus' in client) {
+          return client.focus().then(() => {
+            // Broadcast the data payload to wake up the red modal
+            const channel = new BroadcastChannel('fcm-alerts');
+            channel.postMessage(event.notification.data);
+          });
+        }
+      }
+
+      // Open a new tab if they closed the app entirely
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
+  );
 });
 `;
 
