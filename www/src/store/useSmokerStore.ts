@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { TelemetryData } from '../lib/api';
+import { type TelemetryData } from '../lib/api';
 
 export type { TelemetryData };
 
@@ -22,9 +22,12 @@ interface SmokerState {
   probe3: ProbeState;
   probe4: ProbeState;
   historicalData: TelemetryData[];
+  nextThreshold: number; // Timestamp for the next 1-minute threshold during downsampling
   updateFromTelemetry: (data: TelemetryData) => void;
   initHistoricalData: (data: TelemetryData[]) => void;
-  nextThreshold: number; // Timestamp for the next 1-minute threshold
+  setSmokerTarget: (target: number) => void;
+  setProbeTarget: (probeNumber: 1 | 2 | 3 | 4, target: number) => void;
+  setCookTimer: (totalSeconds: number) => void;
 }
 
 export const useSmokerStore = create<SmokerState>((set, get) => ({
@@ -128,4 +131,25 @@ updateFromTelemetry: (data: TelemetryData) => {
     // 3. Save the clean, lightweight array to state
     set({ nextThreshold: nextThreshold, historicalData: downsampled });
   },
+
+  setSmokerTarget: (target: number) => set({ smokerTarget: target }),
+
+  setProbeTarget: (probeNumber: 1 | 2 | 3 | 4, target: number) => {
+    set(state => {
+      switch(probeNumber) {
+        case 1:
+          return { ...state, probe1: { ...state.probe1, target } };
+        case 2:
+          return { ...state, probe2: { ...state.probe2, target } };
+        case 3:
+          return { ...state, probe3: { ...state.probe3, target } };
+        case 4:
+          return { ...state, probe4: { ...state.probe4, target } };
+        default:
+          return state;
+      }
+    });
+  },
+
+  setCookTimer: (totalSeconds: number) => set({ cookTimer: totalSeconds }),
 }));

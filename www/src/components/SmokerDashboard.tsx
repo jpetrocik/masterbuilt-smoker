@@ -12,7 +12,7 @@ import { Wifi, WifiOff, Flame } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSmokerStore } from '../store/useSmokerStore';
 import { useUserPreferenceStore } from '../store/useUserPreferenceStore';
-import { useTelemetryWebSocket } from '../lib/useTelemetryWebSocket';
+import { useTelemetryWebSocket, sendCommand } from '../lib/useTelemetryWebSocket';
 import type { Smoker } from '../lib/api';
 import { getSmokers } from '../lib/api';
 import { TargetTemperatureModal } from './TargetTemperatureModal';
@@ -65,15 +65,41 @@ export const SmokerDashboard: React.FC = () => {
   };
 
   const handleSetTarget = (newTemperature: number) => {
-    if (modalState.targetType) {
-      console.log(`Setting target for ${modalState.targetType} to ${newTemperature}°F`);
-      // Future: Here you would call an API or update state management
+    const { targetType } = modalState;
+    if (!targetType) return;
+
+    let commandKey = '';
+    
+    // Optimistically update the UI
+    if (targetType === 'smoker') {
+      commandKey = 'setTemp';
+      useSmokerStore.getState().setSmokerTarget(newTemperature);
+    } else if (/^probe[1-4]$/.test(targetType)) {
+      const probeNumber = parseInt(targetType.replace('probe', ''), 10) as 1 | 2 | 3 | 4;
+      commandKey = `setProbe${probeNumber}Target`;
+      useSmokerStore.getState().setProbeTarget(probeNumber, newTemperature);
+    }
+    
+    // Dispatch command
+    if (commandKey) {
+      sendCommand({
+        action: 'command',
+        commandKey,
+        commandValue: (newTemperature / 60).toString(),
+      });
     }
   };
 
   const handleSetTimer = (totalSeconds: number) => {
-    console.log(`Setting cook timer to ${totalSeconds} seconds`);
-    // Future: Here you would call an API or update state management
+    // Optimistically update the UI
+    useSmokerStore.getState().setCookTimer(totalSeconds);
+
+    // Dispatch command
+    sendCommand({
+      action: 'command',
+      commandKey: 'setCookTime',
+      commandValue: totalSeconds.toString(),
+    });
   };
 
 

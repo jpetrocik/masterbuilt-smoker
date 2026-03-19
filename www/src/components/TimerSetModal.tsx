@@ -91,7 +91,7 @@ export const TimerSetModal = ({
             }}
             className="flex-1 rounded-xl bg-orange-600 py-3 text-lg font-bold text-white active:bg-orange-700"
           >
-            Set Timer
+            Ok
           </button>
         </div>
       </div>

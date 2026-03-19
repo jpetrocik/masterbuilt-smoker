@@ -2,6 +2,22 @@ import { useEffect, useRef } from 'react';
 import type { WebSocketMessage } from './api';
 import { useSmokerStore } from '../store/useSmokerStore';
 
+// 1. Create a simple object to hold the active WebSocket instance
+const socketConnection: { ws: WebSocket | null } = {
+  ws: null,
+};
+
+// 2. Export a function to send commands
+export const sendCommand = (command: object): void => {
+  if (socketConnection.ws && socketConnection.ws.readyState === WebSocket.OPEN) {
+    const message = JSON.stringify(command);
+    console.log(`[WebSocket] Sending command:`, message);
+    socketConnection.ws.send(message);
+  } else {
+    console.error('[WebSocket] Connection not open. Cannot send command.');
+  }
+};
+
 export function useTelemetryWebSocket(
   smokerId: string | null,
   sinceSeconds: number = 10800 // 3 hours
@@ -13,9 +29,7 @@ export function useTelemetryWebSocket(
     if (!smokerId) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Use the API base URL for WebSocket connection
     const apiHost = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
-    // Extract host from API base URL
     const wsHost = apiHost.replace(/^https?:\/\//, '');
     const wsUrl = `${protocol}//${wsHost}/ws/smoker/${smokerId}/data?since=${sinceSeconds}`;
     
@@ -24,13 +38,14 @@ export function useTelemetryWebSocket(
     socket.onopen = () => {
       console.log(`[WebSocket] Connected to ${wsUrl}`);
       console.log(`[WebSocket] Requesting historical data since: ${new Date(Date.now() - sinceSeconds * 1000).toISOString()}`);
+      // 3. Assign the connected socket to our global object
+      socketConnection.ws = socket;
     };
 
     socket.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
         
-        // Handle message directly in the store
         if (message.type === 'historical' && Array.isArray(message.data)) {
           console.log(`[WebSocket] Received historical data: ${message.data.length} records`);
           useSmokerStore.getState().initHistoricalData(message.data);
@@ -49,7 +64,8 @@ export function useTelemetryWebSocket(
 
     socket.onclose = () => {
       console.log('WebSocket disconnected');
-      // Attempt to reconnect after 5 seconds
+      // 4. Clear the global object on disconnect
+      socketConnection.ws = null;
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log('Attempting to reconnect WebSocket...');
       }, 5000);
