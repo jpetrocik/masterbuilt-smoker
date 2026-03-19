@@ -276,9 +276,12 @@ export const SmokerDashboard: React.FC = () => {
 
       {/* Header */}
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-orange-500">
+        <button 
+          onClick={() => setShowPicker(true)}
+          className="text-2xl font-bold text-orange-500 text-left bg-transparent disabled:cursor-not-allowed hover:opacity-80 transition-opacity"
+        >
           Smoker {selectedSmokerId ? `#${selectedSmokerId}` : ''}
-        </h1>
+        </button>
         <div className="flex items-center">
           {isOnline ? (
             <Wifi className="text-orange-500" size={24} />
