@@ -465,7 +465,7 @@ export const SmokerDashboard: React.FC = () => {
                   tickLine={false}
                   tickFormatter={formatXAxisTick}
                   ticks={hourlyTicks}
-                  label={{ value: 'Hour', position: 'insideBottom', offset: -2 }}
+
                 />
               <YAxis 
                 stroke="#71717a" 
