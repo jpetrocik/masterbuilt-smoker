@@ -30,6 +30,7 @@ interface SmokerState {
   setCookTimer: (totalSeconds: number) => void;
   isConnecting: boolean;
   setIsConnecting: (status: boolean) => void;
+  _updateSmokerStateWithTelemetry: (data: TelemetryData) => void;
 }
 
 export const useSmokerStore = create<SmokerState>((set, get) => ({
@@ -47,33 +48,11 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
   historicalData: [],
   nextThreshold: 0,
 
-updateFromTelemetry: (data: TelemetryData) => {
-
-  if (!data.timestamp) {
-    console.warn('Received telemetry data without timestamp, ignoring:', data);
-    return;
-  }
-
+  _updateSmokerStateWithTelemetry: (data: TelemetryData) => {
     const MIN_TEMP = 37.0;
     const isHeatOn = data.smokerTarget > MIN_TEMP;
-    
-    // 2. Default to keeping the chart exactly as it is
-    const currentState = get();
-    let updatedHistoricalData = currentState.historicalData;
-    let updatedNextThreshold = currentState.nextThreshold;
 
-    // 3. The Downsampling Check
-    if (data.timestamp >= currentState.nextThreshold) {
-      // The minute has rolled over! Append the new dot and enforce the 6-hour memory limit (360 points)
-      updatedHistoricalData = [...currentState.historicalData, data].slice(-360);
-      
-      // Calculate the next 1-minute tripwire
-      updatedNextThreshold = data.timestamp - (data.timestamp % 60000) + 60000;
-    }
-
-    // 4. Update the Store
     set({
-      // These fast-changing properties update every 5 seconds for your UI dials
       isOnline: true,
       isHeatOn,
       smokerTemperature: data.smokerTemperature,
@@ -101,8 +80,30 @@ updateFromTelemetry: (data: TelemetryData) => {
         target: data.probe4Target || 0,
         alarm: data.probe4Alarm || false,
       },
-      
-      // These only change once a minute to keep Recharts performing smoothly
+    });
+  },
+
+  updateFromTelemetry: (data: TelemetryData) => {
+    if (!data.timestamp) {
+      console.warn('Received telemetry data without timestamp, ignoring:', data);
+      return;
+    }
+
+    const currentState = get();
+    let updatedHistoricalData = currentState.historicalData;
+    let updatedNextThreshold = currentState.nextThreshold;
+
+    // The Downsampling Check
+    if (data.timestamp >= currentState.nextThreshold) {
+      updatedHistoricalData = [...currentState.historicalData, data].slice(-360);
+      updatedNextThreshold = data.timestamp - (data.timestamp % 60000) + 60000;
+    }
+
+    // Update the fast-changing properties directly
+    get()._updateSmokerStateWithTelemetry(data);
+
+    // These only change once a minute to keep Recharts performing smoothly
+    set({
       historicalData: updatedHistoricalData,
       nextThreshold: updatedNextThreshold,
     });
@@ -113,6 +114,11 @@ updateFromTelemetry: (data: TelemetryData) => {
     const processedData = data
       .filter(item => item.timestamp)
       .sort((a, b) => a.timestamp! - b.timestamp!);
+
+    // Update UI with the last historical record first for responsiveness
+    if (processedData.length > 0) {
+      get()._updateSmokerStateWithTelemetry(processedData[processedData.length - 1]);
+    }
 
     // 2. The 1-Minute Downsampling Algorithm
     const downsampled: TelemetryData[] = [];
