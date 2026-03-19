@@ -16,6 +16,7 @@ import { useTelemetryWebSocket } from '../lib/useTelemetryWebSocket';
 import type { Smoker } from '../lib/api';
 import { getSmokers } from '../lib/api';
 import { TargetTemperatureModal } from './TargetTemperatureModal';
+import { TimerSetModal } from './TimerSetModal';
 
 export const SmokerDashboard: React.FC = () => {
   const { 
@@ -47,6 +48,7 @@ export const SmokerDashboard: React.FC = () => {
     title: '',
     currentTarget: 0,
   });
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
 
   // --- Modal Handlers ---
   const handleOpenModal = (targetType: string, title: string, currentTarget: number) => {
@@ -67,6 +69,11 @@ export const SmokerDashboard: React.FC = () => {
       console.log(`Setting target for ${modalState.targetType} to ${newTemperature}°F`);
       // Future: Here you would call an API or update state management
     }
+  };
+
+  const handleSetTimer = (totalSeconds: number) => {
+    console.log(`Setting cook timer to ${totalSeconds} seconds`);
+    // Future: Here you would call an API or update state management
   };
 
 
@@ -203,6 +210,13 @@ export const SmokerDashboard: React.FC = () => {
         title={modalState.title}
         currentTarget={modalState.currentTarget}
       />
+      <TimerSetModal
+        isOpen={isTimerModalOpen}
+        onClose={() => setIsTimerModalOpen(false)}
+        onSave={handleSetTimer}
+        title="Set Cook Timer"
+        currentValueInSeconds={cookTimer}
+      />
       {/* Smoker Picker Dialog */}
       {showPicker && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -260,7 +274,7 @@ export const SmokerDashboard: React.FC = () => {
           >
             {/* Slide 1: Temp */}
             <div className="snap-start shrink-0 w-full flex flex-col items-center justify-center">
-              <button onClick={() => handleOpenModal('smoker', 'Smoker Temperature', smokerTarget)}>
+              <button onClick={() => handleOpenModal('smoker', 'Smoker Temperature', smokerTarget || 150)}>
                 <div className="flex items-center justify-center gap-2">
                   <Flame 
                     className={cn(
@@ -283,23 +297,25 @@ export const SmokerDashboard: React.FC = () => {
 
             {/* Slide 2: Timer */}
             <div className="snap-start shrink-0 w-full flex flex-col items-center justify-center">
-              <div className="flex items-center justify-center gap-2">
-                <Flame 
-                  className={cn(
-                    "w-12 h-12",
+              <button onClick={() => setIsTimerModalOpen(true)}>
+                <div className="flex items-center justify-center gap-2">
+                  <Flame 
+                    className={cn(
+                      "w-12 h-12",
+                      isHeatOn ? "text-orange-500" : "text-zinc-400"
+                    )} 
+                  />
+                  <div className={cn(
+                    "text-7xl font-bold tracking-widest font-mono",
                     isHeatOn ? "text-orange-500" : "text-zinc-400"
-                  )} 
-                />
-                <div className={cn(
-                  "text-7xl font-bold tracking-widest font-mono",
-                  isHeatOn ? "text-orange-500" : "text-zinc-400"
-                )}>
-                  {formatTimeDisplay(cookTimer)}
+                  )}>
+                    {formatTimeDisplay(cookTimer)}
+                  </div>
                 </div>
-              </div>
-              <div className="text-zinc-500 text-xl mt-1">
-                Remaining
-              </div>
+                <div className="text-zinc-500 text-xl mt-1">
+                  Remaining
+                </div>
+              </button>
             </div>
 
             {/* Slide 3: Elapsed Time */}
@@ -333,7 +349,7 @@ export const SmokerDashboard: React.FC = () => {
         </div>
 
         {/* Probe Cards */}
-        <button onClick={() => handleOpenModal('probe1', 'Probe 1 Alarm', probe1.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
+        <button onClick={() => handleOpenModal('probe1', 'Probe 1 Alarm', probe1.target || 150)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 1
           </div>
@@ -344,7 +360,7 @@ export const SmokerDashboard: React.FC = () => {
             {formatTemp(probe1.target)}°
           </div>
         </button>
-        <button onClick={() => handleOpenModal('probe2', 'Probe 2 Alarm', probe2.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
+        <button onClick={() => handleOpenModal('probe2', 'Probe 2 Alarm', probe2.target || 150)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 2
           </div>
@@ -355,7 +371,7 @@ export const SmokerDashboard: React.FC = () => {
             {formatTemp(probe2.target)}°
           </div>
         </button>
-        <button onClick={() => handleOpenModal('probe3', 'Probe 3 Alarm', probe3.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
+        <button onClick={() => handleOpenModal('probe3', 'Probe 3 Alarm', probe3.target || 150)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 3
           </div>
@@ -366,7 +382,7 @@ export const SmokerDashboard: React.FC = () => {
             {formatTemp(probe3.target)}°
           </div>
         </button>
-        <button onClick={() => handleOpenModal('probe4', 'Probe 4 Alarm', probe4.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
+        <button onClick={() => handleOpenModal('probe4', 'Probe 4 Alarm', probe4.target || 150)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 4
           </div>
