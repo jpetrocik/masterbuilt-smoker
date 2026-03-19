@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { WebSocketMessage } from './api';
+import type { TelemetryData, WebSocketMessage } from './api';
 import { useSmokerStore } from '../store/useSmokerStore';
 
-const socketConnection: { ws: WebSocket | null } = {
+const socketConnection: { ws: WebSocket | null; lastTelemetryTimestamp: number | null } = {
   ws: null,
+  lastTelemetryTimestamp: null,
 };
 
 export const sendCommand = (command: object): void => {
@@ -28,6 +29,8 @@ export function useTelemetryWebSocket(
   const reconnectDelay = useRef(MIN_RECONNECT_DELAY);
   const reconnectTimeoutId = useRef<number | null>(null);
   const setIsConnecting = useSmokerStore((state) => state.setIsConnecting);
+  const setIsOnline = useSmokerStore((state) => state.setIsOnline);
+
 
   useEffect(() => {
     if (!smokerId) {
@@ -49,6 +52,7 @@ export function useTelemetryWebSocket(
       socketConnection.ws = socket;
       setIsConnecting(false);
       reconnectDelay.current = MIN_RECONNECT_DELAY; // Reset delay on successful connection
+
     };
 
     socket.onmessage = (event) => {
@@ -57,7 +61,12 @@ export function useTelemetryWebSocket(
         if (message.type === 'historical' && Array.isArray(message.data)) {
           useSmokerStore.getState().initHistoricalData(message.data);
         } else if (message.type === 'live' && !Array.isArray(message.data)) {
-          useSmokerStore.getState().updateFromTelemetry(message.data);
+          useSmokerStore.getState().updateFromTelemetry(message.data as TelemetryData);
+        } else if (message.type === 'presence' && !Array.isArray(message.data)) {
+          const presenceData = message.data as { smokerId: string; status: 'online' | 'offline' };
+          if (presenceData.smokerId === smokerId) {
+            setIsOnline(presenceData.status === 'online');
+          }
         }
       } catch (err) {
         console.error('Failed to parse WebSocket message:', err);
@@ -104,5 +113,5 @@ export function useTelemetryWebSocket(
         reconnectTimeoutId.current = null;
       }
     };
-  }, [smokerId, sinceSeconds, reconnectAttempt, setIsConnecting]);
+  }, [smokerId, sinceSeconds, reconnectAttempt, setIsConnecting, setIsOnline]);
 }

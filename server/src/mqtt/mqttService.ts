@@ -66,6 +66,7 @@ function handlePresenceMessage(smokerId: string, payload: string): void {
   const status = payload === 'online' ? 'online' : 'offline';
   console.log(`Presence update for ${smokerId}: ${status}`);
   updateSmokerStatus(smokerId, status);
+  telemetryEmitter.emit('presenceChange', smokerId, status);
 }
 
 function handleStatusMessage(smokerId: string, payload: string): void {

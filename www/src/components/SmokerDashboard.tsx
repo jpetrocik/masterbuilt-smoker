@@ -143,6 +143,16 @@ export const SmokerDashboard: React.FC = () => {
     }
   }, [carouselIndex]);
 
+  // Set isOnline status when selectedSmokerId or smokers list changes
+  useEffect(() => {
+    if (selectedSmokerId && smokers.length > 0) {
+      const selectedSmoker = smokers.find(s => s.id === selectedSmokerId);
+      if (selectedSmoker) {
+        useSmokerStore.getState().setIsOnline(selectedSmoker.status === 'online');
+      }
+    }
+  }, [selectedSmokerId, smokers]);
+
   // Update carousel index based on scroll position
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;

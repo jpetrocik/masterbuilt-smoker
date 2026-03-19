@@ -23,12 +23,13 @@ interface SmokerState {
   probe4: ProbeState;
   historicalData: TelemetryData[];
   nextThreshold: number; // Timestamp for the next 1-minute threshold during downsampling
+  isConnecting: boolean;
   updateFromTelemetry: (data: TelemetryData) => void;
   initHistoricalData: (data: TelemetryData[]) => void;
   setSmokerTarget: (target: number) => void;
   setProbeTarget: (probeNumber: 1 | 2 | 3 | 4, target: number) => void;
   setCookTimer: (totalSeconds: number) => void;
-  isConnecting: boolean;
+  setIsOnline: (status: boolean) => void;
   setIsConnecting: (status: boolean) => void;
   _updateSmokerStateWithTelemetry: (data: TelemetryData) => void;
 }
@@ -47,13 +48,13 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
   probe4: { temperature: null, target: 0, alarm: false },
   historicalData: [],
   nextThreshold: 0,
+  isConnecting: true,
 
   _updateSmokerStateWithTelemetry: (data: TelemetryData) => {
     const MIN_TEMP = 37.0;
     const isHeatOn = data.smokerTarget > MIN_TEMP;
 
     set({
-      isOnline: true,
       isHeatOn,
       smokerTemperature: data.smokerTemperature,
       smokerTarget: data.smokerTarget,
@@ -140,6 +141,10 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
     set({ nextThreshold: nextThreshold, historicalData: downsampled });
   },
 
+  setIsOnline(status: boolean) {
+    set({ isOnline: status });
+  },
+
   setSmokerTarget: (target: number) => set({ smokerTarget: target }),
 
   setProbeTarget: (probeNumber: 1 | 2 | 3 | 4, target: number) => {
@@ -161,6 +166,5 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
 
   setCookTimer: (totalSeconds: number) => set({ cookTimer: totalSeconds }),
 
-  isConnecting: true, // Default to true on initial load
   setIsConnecting: (status: boolean) => set({ isConnecting: status }),
 }));

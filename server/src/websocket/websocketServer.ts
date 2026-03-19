@@ -66,6 +66,17 @@ export function createWebSocketServer(server: http.Server): void {
     
     telemetryEmitter.on('telemetry', onTelemetry);
 
+    // Listener for presence changes
+    const onPresenceChange = (changedSmokerId: string, status: 'online' | 'offline') => {
+      if (changedSmokerId === smokerId) {
+        ws.send(JSON.stringify({
+          type: 'presence',
+          data: { smokerId: changedSmokerId, status }
+        }));
+      }
+    };
+    telemetryEmitter.on('presenceChange', onPresenceChange);
+
     // Handle incoming messages (commands)
     ws.on('message', (data) => {
       try {
@@ -110,11 +121,13 @@ export function createWebSocketServer(server: http.Server): void {
     ws.on('close', () => {
       console.log(`WebSocket disconnected for smoker: ${smokerId}`);
       telemetryEmitter.off('telemetry', onTelemetry);
+      telemetryEmitter.off('presenceChange', onPresenceChange);
     });
     
     ws.on('error', (err) => {
       console.error(`WebSocket error for smoker ${smokerId}:`, err);
       telemetryEmitter.off('telemetry', onTelemetry);
+      telemetryEmitter.off('presenceChange', onPresenceChange);
     });
   });
 }

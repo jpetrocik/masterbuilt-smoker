@@ -28,9 +28,14 @@ export interface TelemetryData {
   timestamp?: number;
 }
 
+export interface PresenceData {
+  smokerId: string;
+  status: 'online' | 'offline';
+}
+
 export interface WebSocketMessage {
-  type: 'historical' | 'live';
-  data: TelemetryData | TelemetryData[];
+  type: 'historical' | 'live' | 'presence';
+  data: TelemetryData | TelemetryData[] | PresenceData;
 }
 
 // Get list of online smokers
