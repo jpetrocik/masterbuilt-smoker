@@ -28,6 +28,8 @@ interface SmokerState {
   setSmokerTarget: (target: number) => void;
   setProbeTarget: (probeNumber: 1 | 2 | 3 | 4, target: number) => void;
   setCookTimer: (totalSeconds: number) => void;
+  isConnecting: boolean;
+  setIsConnecting: (status: boolean) => void;
 }
 
 export const useSmokerStore = create<SmokerState>((set, get) => ({
@@ -152,4 +154,7 @@ updateFromTelemetry: (data: TelemetryData) => {
   },
 
   setCookTimer: (totalSeconds: number) => set({ cookTimer: totalSeconds }),
+
+  isConnecting: true, // Default to true on initial load
+  setIsConnecting: (status: boolean) => set({ isConnecting: status }),
 }));

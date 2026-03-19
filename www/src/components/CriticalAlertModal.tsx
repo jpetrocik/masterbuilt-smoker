@@ -10,7 +10,7 @@ export const CriticalAlertModal = ({
   onDismiss: () => void;
 }) => {
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md rounded-2xl bg-gradient-to-b from-red-600 to-red-800 p-8 text-center shadow-[0_0_60px_rgba(220,38,38,0.6)] border border-red-400">
         
         <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-500/50 shadow-[0_0_30px_rgba(255,255,255,0.3)] animate-pulse">

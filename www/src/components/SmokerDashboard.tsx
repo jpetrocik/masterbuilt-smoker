@@ -17,6 +17,7 @@ import type { Smoker } from '../lib/api';
 import { getSmokers } from '../lib/api';
 import { TargetTemperatureModal } from './TargetTemperatureModal';
 import { TimerSetModal } from './TimerSetModal';
+import { LostConnectionModal } from './LostConnectionModal';
 
 export const SmokerDashboard: React.FC = () => {
   const { 
@@ -31,6 +32,7 @@ export const SmokerDashboard: React.FC = () => {
     probe3,
     probe4,
     historicalData,
+    isConnecting,
   } = useSmokerStore();
   
   const { 
@@ -85,7 +87,7 @@ export const SmokerDashboard: React.FC = () => {
       sendCommand({
         action: 'command',
         commandKey,
-        commandValue: (newTemperature / 60).toString(),
+        commandValue: newTemperature.toString(),
       });
     }
   };
@@ -94,11 +96,13 @@ export const SmokerDashboard: React.FC = () => {
     // Optimistically update the UI
     useSmokerStore.getState().setCookTimer(totalSeconds);
 
+    const totalMinutes = Math.ceil(totalSeconds / 60);
+
     // Dispatch command
     sendCommand({
       action: 'command',
       commandKey: 'setCookTime',
-      commandValue: totalSeconds.toString(),
+      commandValue: totalMinutes.toString(),
     });
   };
 
@@ -155,7 +159,7 @@ export const SmokerDashboard: React.FC = () => {
   const formatTimeDisplay = (seconds: number): string => {
     if (!seconds || seconds <= 0) return '--:--';
     const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
+    const mins = Math.ceil((seconds % 3600) / 60);
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
@@ -228,6 +232,7 @@ export const SmokerDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-6 pb-20 safe-area-inset-bottom">
+      {isConnecting && <LostConnectionModal />}
       <TargetTemperatureModal
         key={modalState.targetType}
         isOpen={modalState.isOpen}
@@ -245,7 +250,7 @@ export const SmokerDashboard: React.FC = () => {
       />
       {/* Smoker Picker Dialog */}
       {showPicker && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-zinc-900 rounded-xl p-6 max-w-sm w-full mx-4 border border-zinc-800">
             <h2 className="text-xl font-bold text-orange-500 mb-4">Select Smoker</h2>
             <div className="space-y-2">

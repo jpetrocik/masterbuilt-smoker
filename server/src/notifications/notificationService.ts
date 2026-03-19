@@ -3,7 +3,7 @@ import { telemetryEmitter } from '../utils/eventEmitter';
 import { SmokerTelemetryPayload, SmokerTelemetryData } from '../types';
 import { getTokensForSmoker } from '../database/database';
 import { messaging } from '../firebase/firebaseAdmin';
-import { checkAndReset, recordNotification } from '../state/smokerState';
+import { checkAndReset, recordNotification, getAndUpdateCookTimer } from '../state/smokerState';
 
 export function initNotificationService(): void {
   telemetryEmitter.on('telemetry', (smokerTelemetryData: SmokerTelemetryData) => {
@@ -12,7 +12,7 @@ export function initNotificationService(): void {
 }
 
 function evaluateAndSend(smokerTelemetryData: SmokerTelemetryData): void {
-  const { smokerId, smokerTemperature, smokerTarget } = smokerTelemetryData;
+  const { smokerId, smokerTemperature, smokerTarget, cookTimer } = smokerTelemetryData;
 
   // --- Check Smoker Temperature ---
   if (smokerTarget > 0) {
@@ -28,8 +28,8 @@ function evaluateAndSend(smokerTelemetryData: SmokerTelemetryData): void {
 
   // --- Check Probe Temperatures ---
   for (let i = 1; i <= 4; i++) {
-    const probeTemp = smokerTelemetryData[`probe${i}Temperature` as keyof SmokerTelemetryPayload] as number | undefined;
-    const probeTarget = smokerTelemetryData[`probe${i}Target` as keyof SmokerTelemetryPayload] as number | undefined;
+    const probeTarget = smokerTelemetryData[`probe${i}Temperature` as keyof SmokerTelemetryPayload] as number | undefined;
+    const probeTemp = smokerTelemetryData[`probe${i}Target` as keyof SmokerTelemetryPayload] as number | undefined;
 
     if (probeTarget !== undefined && probeTarget > 0 && probeTemp !== undefined) {
       const lock = checkAndReset(smokerId, 'probe', probeTarget, i);
@@ -39,6 +39,18 @@ function evaluateAndSend(smokerTelemetryData: SmokerTelemetryData): void {
           sendNotification(tokens, 'Meat Ready!', `Probe ${i} has reached ${probeTarget}°F.`);
           recordNotification(smokerId, 'probe', i);
         }
+      }
+    }
+  }
+  
+  // --- Check Cook Timer ---
+  if (cookTimer !== undefined) {
+    const previousCookTimer = getAndUpdateCookTimer(smokerId, cookTimer);
+    // Check if the timer just hit zero (the "zero-crossing" event)
+    if (previousCookTimer > 0 && cookTimer === 0) {
+      const tokens = getTokensForSmoker(smokerId);
+      if (tokens.length > 0) {
+        sendNotification(tokens, 'Cook Finished!', 'Your cook timer has reached zero.');
       }
     }
   }
