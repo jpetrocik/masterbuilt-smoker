@@ -15,6 +15,7 @@ import { useUserPreferenceStore } from '../store/useUserPreferenceStore';
 import { useTelemetryWebSocket } from '../lib/useTelemetryWebSocket';
 import type { Smoker } from '../lib/api';
 import { getSmokers } from '../lib/api';
+import { TargetTemperatureModal } from './TargetTemperatureModal';
 
 export const SmokerDashboard: React.FC = () => {
   const { 
@@ -39,6 +40,35 @@ export const SmokerDashboard: React.FC = () => {
   } = useUserPreferenceStore();
   const [smokers, setSmokers] = useState<Smoker[]>([]);
   const [showPicker, setShowPicker] = useState(false);
+  const carouselRef = React.useRef<HTMLDivElement>(null);
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    targetType: '',
+    title: '',
+    currentTarget: 0,
+  });
+
+  // --- Modal Handlers ---
+  const handleOpenModal = (targetType: string, title: string, currentTarget: number) => {
+    setModalState({
+      isOpen: true,
+      targetType,
+      title,
+      currentTarget: currentTarget || 0,
+    });
+  };
+
+  const handleCloseModal = () => {
+    setModalState({ isOpen: false, targetType: '', title: '', currentTarget: 0 });
+  };
+
+  const handleSetTarget = (newTemperature: number) => {
+    if (modalState.targetType) {
+      console.log(`Setting target for ${modalState.targetType} to ${newTemperature}°F`);
+      // Future: Here you would call an API or update state management
+    }
+  };
+
 
   // Load smokers on mount
   useEffect(() => {
@@ -67,6 +97,14 @@ export const SmokerDashboard: React.FC = () => {
 
   // Connect to WebSocket (handles messages directly in store)
   useTelemetryWebSocket(selectedSmokerId);
+
+  // Set initial scroll position of the carousel
+  useEffect(() => {
+    if (carouselRef.current) {
+      const slideWidth = carouselRef.current.clientWidth;
+      carouselRef.current.scrollLeft = carouselIndex * slideWidth;
+    }
+  }, [carouselIndex]);
 
   // Update carousel index based on scroll position
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -157,6 +195,14 @@ export const SmokerDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-6 pb-20 safe-area-inset-bottom">
+      <TargetTemperatureModal
+        key={modalState.targetType}
+        isOpen={modalState.isOpen}
+        onClose={handleCloseModal}
+        onSave={handleSetTarget}
+        title={modalState.title}
+        currentTarget={modalState.currentTarget}
+      />
       {/* Smoker Picker Dialog */}
       {showPicker && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -206,30 +252,33 @@ export const SmokerDashboard: React.FC = () => {
             {carouselIndex === 0 ? "Smoker Temp" : carouselIndex === 1 ? "Cook Timer" : "Elapsed Time"}
           </div>
 
-          {/* Swipeable Container */}
-          <div 
+           {/* Swipeable Container */}
+           <div 
+            ref={carouselRef}
             className="mt-4 flex overflow-x-auto snap-x snap-mandatory snap-start h-36 items-center scrollbar-hide"
             onScroll={handleScroll}
           >
             {/* Slide 1: Temp */}
             <div className="snap-start shrink-0 w-full flex flex-col items-center justify-center">
-              <div className="flex items-center justify-center gap-2">
-                <Flame 
-                  className={cn(
-                    "w-12 h-12",
-                    isHeatOn ? "text-orange-500" : "text-zinc-400"
-                  )} 
-                />
-                <div className={cn(
-                  "text-7xl font-bold tracking-tighter",
-                  isHeatOn ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-400"
-                )}>
-                  {formatTemp(smokerTemperature)}°
+              <button onClick={() => handleOpenModal('smoker', 'Smoker Temperature', smokerTarget)}>
+                <div className="flex items-center justify-center gap-2">
+                  <Flame 
+                    className={cn(
+                      "w-12 h-12",
+                      isHeatOn ? "text-orange-500" : "text-zinc-400"
+                    )} 
+                  />
+                  <div className={cn(
+                    "text-7xl font-bold tracking-tighter",
+                    isHeatOn ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-400"
+                  )}>
+                    {formatTemp(smokerTemperature)}°
+                  </div>
                 </div>
-              </div>
-              <div className="text-zinc-500 text-xl mt-1">
-                {formatTemp(smokerTarget)}°
-              </div>
+                <div className="text-zinc-500 text-xl mt-1">
+                  {formatTemp(smokerTarget)}°
+                </div>
+              </button>
             </div>
 
             {/* Slide 2: Timer */}
@@ -284,7 +333,7 @@ export const SmokerDashboard: React.FC = () => {
         </div>
 
         {/* Probe Cards */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
+        <button onClick={() => handleOpenModal('probe1', 'Probe 1 Alarm', probe1.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 1
           </div>
@@ -294,8 +343,8 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-500 text-lg mt-1">
             {formatTemp(probe1.target)}°
           </div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
+        </button>
+        <button onClick={() => handleOpenModal('probe2', 'Probe 2 Alarm', probe2.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 2
           </div>
@@ -305,8 +354,8 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-500 text-lg mt-1">
             {formatTemp(probe2.target)}°
           </div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
+        </button>
+        <button onClick={() => handleOpenModal('probe3', 'Probe 3 Alarm', probe3.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 3
           </div>
@@ -316,8 +365,8 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-500 text-lg mt-1">
             {formatTemp(probe3.target)}°
           </div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center">
+        </button>
+        <button onClick={() => handleOpenModal('probe4', 'Probe 4 Alarm', probe4.target)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center justify-center text-left w-full">
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 4
           </div>
@@ -327,7 +376,7 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-500 text-lg mt-1">
             {formatTemp(probe4.target)}°
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Historical Chart Section */}
