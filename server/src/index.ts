@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import http from 'http';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+import path from 'path';
 import routes from './routes';
 import fcmRoutes from './routes/fcmRoutes';
 import config from './config';
@@ -35,11 +36,6 @@ app.get('/health', (req, res) => {
 app.use('/api', routes);
 app.use('/api/fcm', fcmRoutes);
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to the API' });
-});
-
 // Connect to MQTT broker
 connectMqtt();
 
@@ -68,9 +64,21 @@ if (process.env.NODE_ENV === 'development') {
 
   const swaggerSpec = swaggerJsdoc(swaggerOptions);
   
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/swagger.json', (req, res) => {
+    res.json(swaggerSpec);
+  });
+
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { swaggerUrl: '/swagger.json' }));
   console.log(`Swagger UI available at http://localhost:${PORT}/api-docs`);
 }
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../../www/dist')));
+
+// All other requests return the React app, so it can handle routing
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, '../../www/dist', 'index.html'));
+});
 
 // Create HTTP server
 const server = http.createServer(app);

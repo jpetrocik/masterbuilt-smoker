@@ -169,6 +169,10 @@ export const SmokerDashboard: React.FC = () => {
     return Math.round(temp).toString();
   };
 
+  const isProbePresent = (temp: number | null | undefined): boolean => {
+    return !(temp === null || temp === undefined || temp === 0);
+  };
+
   // Prepare chart data from historical and live data
   const chartData = React.useMemo(() => {
     return historicalData.map((item) => ({
@@ -387,7 +391,7 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 1
           </div>
-          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+          <div className={cn("text-5xl font-bold", isProbePresent(probe1.temperature) ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-500")}>
             {formatTemp(probe1.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
@@ -398,7 +402,7 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 2
           </div>
-          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+          <div className={cn("text-5xl font-bold", isProbePresent(probe2.temperature) ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-500")}>
             {formatTemp(probe2.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
@@ -409,7 +413,7 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 3
           </div>
-          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+          <div className={cn("text-5xl font-bold", isProbePresent(probe3.temperature) ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-500")}>
             {formatTemp(probe3.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
@@ -420,7 +424,7 @@ export const SmokerDashboard: React.FC = () => {
           <div className="text-zinc-300 text-sm font-semibold mb-2 self-start">
             Probe 4
           </div>
-          <div className="text-5xl font-bold text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]">
+          <div className={cn("text-5xl font-bold", isProbePresent(probe4.temperature) ? "text-orange-500 [text-shadow:0_0_20px_rgba(249,115,22,0.6)]" : "text-zinc-500")}>
             {formatTemp(probe4.temperature)}°
           </div>
           <div className="text-zinc-500 text-lg mt-1">
