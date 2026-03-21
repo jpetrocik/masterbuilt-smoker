@@ -7,10 +7,22 @@ const configPath = path.join(__dirname, 'config.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
 // Default values
-const smokerId = config.smokerId || 'smoker123';
+const args = process.argv.slice(2);
+const smokerIdArg = args.find(arg => arg.startsWith('--smokerId='));
+const activeProbesArg = args.find(arg => arg.startsWith('--probes='));
+
+const smokerId = smokerIdArg ? smokerIdArg.split('=')[1] : config.smokerId || 'smoker123';
 const mqttBroker = config.mqttBroker || 'mqtt://localhost:1883';
 const publishInterval = config.publishInterval || 5000;
-const activeProbes = config.activeProbes || 4;
+let activeProbes = config.activeProbes || 4;
+if (activeProbesArg) {
+  const parsedProbes = parseInt(activeProbesArg.split('=')[1], 10);
+  if (!isNaN(parsedProbes) && parsedProbes >= 1 && parsedProbes <= 4) {
+    activeProbes = parsedProbes;
+  } else {
+    console.warn(`Invalid value for --probes. Using default or config value (${activeProbes}).`);
+  }
+}
 
 // MQTT Topics
 const presenceTopic = `smoker/${smokerId}/presence`;

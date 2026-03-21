@@ -5,7 +5,9 @@
   "main": "simulator.js",
   "scripts": {
     "start": "node simulator.js",
-    "dev": "node simulator.js"
+    "dev": "node simulator.js",
+    "start:custom": "node simulator.js --smokerId <YOUR_SMOKER_ID> --probes <NUMBER_OF_PROBES>",
+    "dev:custom": "node simulator.js --smokerId <YOUR_SMOKER_ID> --probes <NUMBER_OF_PROBES>"
   },
   "dependencies": {
     "mqtt": "^5.0.0"
