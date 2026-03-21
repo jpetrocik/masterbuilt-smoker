@@ -8,15 +8,30 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
 // Default values
 const args = process.argv.slice(2);
-const smokerIdArg = args.find(arg => arg.startsWith('--smokerId='));
-const activeProbesArg = args.find(arg => arg.startsWith('--probes='));
+let smokerIdArgValue = null;
+let activeProbesArgValue = null;
 
-const smokerId = smokerIdArg ? smokerIdArg.split('=')[1] : config.smokerId || 'smoker123';
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--smokerId' && args[i + 1]) {
+    smokerIdArgValue = args[i + 1];
+    i++; // Skip the next argument as it's the value
+  } else if (args[i].startsWith('--smokerId=')) {
+    smokerIdArgValue = args[i].split('=')[1];
+  } else if (args[i] === '--probes' && args[i + 1]) {
+    activeProbesArgValue = args[i + 1];
+    i++; // Skip the next argument as it's the value
+  } else if (args[i].startsWith('--probes=')) {
+    activeProbesArgValue = args[i].split('=')[1];
+  }
+}
+
+
+const smokerId = smokerIdArgValue ? smokerIdArgValue : config.smokerId || 'smoker123';
 const mqttBroker = config.mqttBroker || 'mqtt://localhost:1883';
 const publishInterval = config.publishInterval || 5000;
 let activeProbes = config.activeProbes || 4;
-if (activeProbesArg) {
-  const parsedProbes = parseInt(activeProbesArg.split('=')[1], 10);
+if (activeProbesArgValue) {
+  const parsedProbes = parseInt(activeProbesArgValue, 10);
   if (!isNaN(parsedProbes) && parsedProbes >= 1 && parsedProbes <= 4) {
     activeProbes = parsedProbes;
   } else {
