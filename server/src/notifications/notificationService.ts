@@ -28,8 +28,8 @@ function evaluateAndSend(smokerTelemetryData: SmokerTelemetryData): void {
 
   // --- Check Probe Temperatures ---
   for (let i = 1; i <= 4; i++) {
-    const probeTarget = smokerTelemetryData[`probe${i}Temperature` as keyof SmokerTelemetryPayload] as number | undefined;
-    const probeTemp = smokerTelemetryData[`probe${i}Target` as keyof SmokerTelemetryPayload] as number | undefined;
+    const probeTarget = smokerTelemetryData[`probe${i}Target` as keyof SmokerTelemetryData] as number | undefined;
+    const probeTemp = smokerTelemetryData[`probe${i}Temperature` as keyof SmokerTelemetryData] as number | undefined;
 
     if (probeTarget !== undefined && probeTarget > 0 && probeTemp !== undefined) {
       const lock = checkAndReset(smokerId, 'probe', probeTarget, i);
