@@ -10,11 +10,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Smoker Controller',
+        name: 'Smoker',
         short_name: 'Smoker',
-        description: 'Mobile-first smoker controller PWA',
-        theme_color: '#18181b',
-        background_color: '#18181b',
+        description: 'Smoker controller for Masterbuilt smoker',
+        theme_color: '#dd550b',
+        background_color: '#dd550b',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -23,18 +23,26 @@ export default defineConfig({
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'maskable'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
+          },
+          {
+            src: 'pwa-192x192-any.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-512x512-any.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
           }
         ]
       },
