@@ -166,10 +166,17 @@ export const SmokerDashboard: React.FC = () => {
   };
 
   // Format time for display
-  const formatTimeDisplay = (seconds: number): string => {
+  const formatTimerDisplay = (seconds: number): string => {
     if (!seconds || seconds <= 0) return '--:--';
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.ceil((seconds % 3600) / 60);
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  };
+
+  const formatElaspedTimeDisplay = (seconds: number): string => {
+    if (!seconds || seconds <= 0) return '--:--';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
@@ -357,7 +364,7 @@ export const SmokerDashboard: React.FC = () => {
                     "text-7xl font-bold tracking-widest font-mono",
                     isHeatOn ? "text-orange-500" : "text-zinc-400"
                   )}>
-                    {formatTimeDisplay(cookTimer)}
+                    {formatTimerDisplay(cookTimer)}
                   </div>
                 </div>
                 <div className="text-zinc-500 text-xl mt-1">
@@ -379,7 +386,7 @@ export const SmokerDashboard: React.FC = () => {
                   "text-7xl font-bold tracking-widest font-mono",
                   isHeatOn ? "text-orange-500" : "text-zinc-400"
                 )}>
-                  {formatTimeDisplay(cookTime)}
+                  {formatElaspedTimeDisplay(cookTime)}
                 </div>
               </div>
               <div className="text-zinc-500 text-xl mt-1">
