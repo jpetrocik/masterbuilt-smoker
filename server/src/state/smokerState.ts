@@ -6,8 +6,9 @@ interface NotificationLock {
 
 interface SmokerNotificationState {
   smoker: NotificationLock;
-  lastSeenCookTimer: number;
+  cookTimer: NotificationLock;
   probes: { [key: number]: NotificationLock };
+  stallNotified: { [key: number]: NotificationLock };
 }
 
 // In-memory state store
@@ -24,58 +25,78 @@ function getSmokerState(smokerId: string): SmokerNotificationState {
   if (!smokerStates.has(smokerId)) {
     smokerStates.set(smokerId, {
       smoker: getDefaultLock(),
-      lastSeenCookTimer: 0,
+      cookTimer: getDefaultLock(),
       probes: {},
+      stallNotified: {},
     });
   }
   return smokerStates.get(smokerId)!;
 }
 
 /**
- * Checks if the target has changed for a given item (smoker or probe).
- * If it has, it resets the notification lock for that item.
- * @returns The current notification lock state for the item.
+ * Checks if the smoker's target temperature has changed.
+ * If it has, it resets the notification lock for that item before returning.
+ * @returns The current notification lock state for the smoker.
  */
-export function checkAndReset(smokerId: string, type: 'smoker' | 'probe', currentValue: number, probeIndex?: number): NotificationLock {
+export function getAndUpdateSmokerTemperatureNotificationLock(smokerId: string, currentSmokerTarget: number): NotificationLock {
   const state = getSmokerState(smokerId);
-  const item: NotificationLock = (type === 'smoker')
-    ? state.smoker
-    : state.probes[probeIndex!] || getDefaultLock();
+  const notificationLock: NotificationLock = state.smoker;
 
-  if (currentValue !== item.lastSeenValue) {
-    // Target has changed, reset the lock
-    item.lastSeenValue = currentValue;
-    item.notified = false;
+  if (currentSmokerTarget !== notificationLock.lastSeenValue) {
+    notificationLock.lastSeenValue = currentSmokerTarget;
+    notificationLock.notified = false;
   }
   
-  if (type === 'probe' && probeIndex) {
-    state.probes[probeIndex] = item;
-  }
-
-  return item;
+  return notificationLock;
 }
 
 /**
- * Marks a specific item as having been notified.
+ * Checks if the probe's target temperature has changed.
+ * If it has, it resets the notification lock for that item before returning.
+ * @returns The current notification lock state for the probe.
  */
-export function recordNotification(smokerId: string, type: 'smoker' | 'probe', probeIndex?: number): void {
+export function getAndUpdateProbeTemperatureNotificationLock(smokerId: string, probeIndex: number, currentProbeTarget: number): NotificationLock {
   const state = getSmokerState(smokerId);
-  const item = (type === 'smoker')
-    ? state.smoker
-    : state.probes[probeIndex!];
+  const notificationLock: NotificationLock = state.probes[probeIndex] || getDefaultLock();
 
-  if (item) {
-    item.notified = true;
+  if (currentProbeTarget !== notificationLock.lastSeenValue) {
+    // Target has changed, reset the lock
+    notificationLock.lastSeenValue = currentProbeTarget;
+    notificationLock.notified = false;
   }
+  
+  // Ensure it's stored back in the state if it was newly created
+  state.probes[probeIndex] = notificationLock; 
+
+  return notificationLock;
 }
 
 /**
+ * Check if the cook timer has been reset after reaching zero.
  * Gets the previous cook timer value and updates it with the current one.
  * @returns The previous cook timer value for the given smoker.
  */
-export function getAndUpdateCookTimer(smokerId: string, currentCookTimer: number): number {
+export function getAndUpdateCookTimerNotificationLock(smokerId: string, currentCookTimer: number): NotificationLock {
   const state = getSmokerState(smokerId);
-  const previousCookTimer = state.lastSeenCookTimer;
-  state.lastSeenCookTimer = currentCookTimer;
-  return previousCookTimer;
+  const notificationLock = state.cookTimer;
+  if (notificationLock.lastSeenValue == 0 && currentCookTimer > 0) {
+    // Target has changed, reset the lock
+    notificationLock.lastSeenValue = currentCookTimer;
+    notificationLock.notified = false;
+  }
+
+  return notificationLock;;
+}
+
+/**
+ * Checks if a stall notification has been sent for a specific probe.
+ */
+export function getStallNotificationLock(smokerId: string, probeIndex: number): NotificationLock {
+  const state = getSmokerState(smokerId);
+  const notificationLock: NotificationLock = state.stallNotified[probeIndex] || getDefaultLock();
+
+  // Ensure it's stored back in the state if it was newly created
+  state.stallNotified[probeIndex] = notificationLock; 
+
+  return notificationLock;
 }
