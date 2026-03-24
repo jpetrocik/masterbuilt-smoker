@@ -51,6 +51,8 @@ let state = {
   cookTimer: 0, // countdown in seconds
   cookTime: 0, // elapsed time in seconds (simulated)
   dutyCycle: 0.0,
+  smokerNextIncrementTime: 0,
+  probeNextIncrementTime: [0, 0, 0, 0],
   probes: [
     { current: 75.0, target: 0.0, alarm: false },
     { current: 75.0, target: 0.0, alarm: false },
@@ -61,13 +63,16 @@ let state = {
 
 // Initialize probes based on activeProbes config
 function initializeProbes() {
+  state.smokerNextIncrementTime = 0;
   for (let i = 0; i < 4; i++) {
     if (i < activeProbes) {
       // Probe is plugged in - start at 75°F
       state.probes[i].current = 75.0;
+      state.probeNextIncrementTime[i] = 0; //Date.now() + ((Math.floor(Math.random() * (8 - 5 + 1)) + 5) * 60 * 1000);
     } else {
       // Probe is not plugged in - set to 0.0 (simulates missing probe)
       state.probes[i].current = 0.0;
+      state.probeNextIncrementTime[i] = 0;
     }
     state.probes[i].target = 0.0;
     state.probes[i].alarm = false;
@@ -141,23 +146,25 @@ function handleCommand(command) {
       
       // Update target temperature
       state.targetTemperature = newTargetTemp;
-      
+
       // Handle cook time based on firmware logic:
       // When setting temp to 0, stop cook timer and cancel scheduled shutdown
       if (newTargetTemp === 0) {
         state.cookTime = 0;
         state.cookTimer = 0;
         state.dutyCycle = 0;
+        state.smokerNextIncrementTime = 0;
         console.log(`Smoker turned OFF (target temp set to 0)`);
       }
       // When setting temp from 0 to non-zero, start cook time
       else if (oldTargetTemp <= MIN_TEMP) {
         // Start cook time tracking (simulated as elapsed time starts from 0)
         state.cookTime = 0;
+        state.smokerNextIncrementTime = Date.now() + (1 * 60 * 1000);
         console.log(`Smoker turned ON (target temp: ${newTargetTemp}°)`);
       }
       // When setting temp from non-zero to non-zero, do nothing (continue cooking)
-      
+
       console.log(`Set smoker target temperature: ${newTargetTemp}°`);
     }
     
@@ -175,6 +182,9 @@ function handleCommand(command) {
       const targetTemp = parseInt(probeTargetMatch[2], 10);
       if (probeIndex >= 0 && probeIndex < 4) {
         state.probes[probeIndex].target = targetTemp;
+        // if (targetTemp > state.probes[probeIndex].current) {
+        //   state.probeNextIncrementTime[probeIndex] = Date.now() + ((Math.floor(Math.random() * (8 - 5 + 1)) + 5) * 60 * 1000);
+        // }
         console.log(`Set probe ${probeIndex + 1} target: ${targetTemp}°`);
       }
     }
@@ -198,24 +208,24 @@ function generateTelemetry() {
   
   // Only update temperatures and cook time when smoker is ON
   if (smokerIsOn) {
-    // Random walk for smoker temperature
-    const change = (Math.random() * 3.0) - 1.0; // -1.0 to +2.0
-    state.temperature = Math.min(225, Math.max(75, state.temperature + change));
-    
-    // Random walk for probe temperatures (only for active probes)
+    // Smoker temperature increment
+    if (state.temperature < state.targetTemperature && Date.now() >= state.smokerNextIncrementTime) {
+      state.temperature = Math.min(state.targetTemperature, state.temperature + 1.0);
+      state.smokerNextIncrementTime = Date.now() + (1 * 60 * 1000); // Next increment in 1 minute
+    }
+
+    // Probe temperatures increment (only for active probes)
     for (let i = 0; i < 4; i++) {
-      if (i < activeProbes) {
-        // Only simulate random walk for plugged-in probes
-        const change = (Math.random() * 3.0) - 1.0;
-        state.probes[i].current = Math.min(225, Math.max(75, state.probes[i].current + change));
-        
-        // Check alarm conditions
-        state.probes[i].alarm = state.probes[i].target > 0 && state.probes[i].current > state.probes[i].target;
-      } else {
-        // Unplugged probes remain at 0.0
-        state.probes[i].current = 0.0;
-        state.probes[i].alarm = false;
+      if (i < activeProbes && state.probes[i].current < state.targetTemperature && state.probes[i].current < state.probes[i].target && Date.now() >= state.probeNextIncrementTime[i]) {
+        state.probes[i].current = Math.min(state.probes[i].target, state.temperature, state.probes[i].current + 1.0);
+        state.probeNextIncrementTime[i] = Date.now() + ((Math.floor(Math.random() * (8 - 5 + 1)) + 5) * 60 * 1000); // New random 5-8 minute interval
+      } else if (i < activeProbes && state.probes[i].current > state.temperature) {
+        // Probe temperature should not exceed smoker temperature
+        state.probes[i].current = state.temperature;
       }
+      
+      // Check alarm conditions
+      state.probes[i].alarm = state.probes[i].target > 0 && state.probes[i].current > state.probes[i].target;
     }
     
     // Simulate cook time elapsed (every 5 seconds = 5 seconds elapsed)
