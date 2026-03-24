@@ -61,7 +61,7 @@ function evaluateAndSend(smokerTelemetryData: SmokerTelemetryData): void {
   if (cookTimer !== undefined) {
     const lock = getAndUpdateCookTimerNotificationLock(smokerId, cookTimer);
     // Check if the timer just hit zero (the "zero-crossing" event)
-    if (!lock.notified && cookTimer === 0 && lock.lastSeenValue > 0) {
+    if (!lock.notified && cookTimer === 0) {
       const tokens = getTokensForSmoker(smokerId);
       if (tokens.length > 0) {
         sendNotification(tokens, 'Cook Finished!', 'Your cook timer has reached zero.');
