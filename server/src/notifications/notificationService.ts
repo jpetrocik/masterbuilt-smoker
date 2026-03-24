@@ -102,20 +102,37 @@ function detectMeatStall(smokerId: string, probeIndex: number, probeTemp: number
   // Fetch historical data from SQLite
   const historicalData = getHistoricalData(smokerId, thirtyMinutesAgo);
 
-  // Assuming telemetry arrives roughly every 5 seconds, 25 minutes of data should be around 300 points.
-  // The Historical SMA needs data from 25 to 20 minutes ago.
-  // If we don't have enough data history to even reach 25 minutes back, we can't reliably calculate the Historical SMA.
   const twentyFiveMinutesAgo = now - 25 * 60 * 1000;
-  if (historicalData.length === 0 || historicalData[0].timestamp > twentyFiveMinutesAgo) {
-    return false; // Insufficient history
+
+  // We need at least 13 historical records for reliable stall detection,
+  // and the oldest record must be at least 25 minutes old.
+  if (historicalData.length < 13 || historicalData[0].timestamp > twentyFiveMinutesAgo) {
+    return false; // Insufficient history for reliable stall detection.
   }
+
+  const totalDuration = historicalData[historicalData.length - 1].timestamp - historicalData[0].timestamp;
+  if (totalDuration < twentyFiveMinutesAgo) {
+    return false; // Not large enough window to calcuate stale
+  }
+
+  const totalIntervals = historicalData.length - 1; // historicalData.length is guaranteed to be >= 13 here
+  
+  // Calculate the telemetry interval and ensure a reasonable minimum interval (e.g., 1 second) to prevent issues with extremely small or zero intervals
+  let actualTelemetryIntervalMillis = totalDuration / totalIntervals;
+  if (actualTelemetryIntervalMillis < 1000) {
+    actualTelemetryIntervalMillis = 1000;
+  }
+
+  const expectedPointsPerMinute = (60 * 1000) / actualTelemetryIntervalMillis;
+  const minRequiredPointsFor5MinSMA = Math.ceil(expectedPointsPerMinute * 5 * 0.5); // Require at least 50% of expected points for a 5-min window
 
   // 2. Smoothing (Noise Reduction) - Helper to calculate SMA for a given window
   const calculateSMA = (startTime: number, endTime: number): number | null => {
     const windowData = historicalData.filter(row => row.timestamp >= startTime && row.timestamp <= endTime);
 
     // We need a minimum number of data points to consider the SMA valid.
-    if (windowData.length < 5) {
+    // This minimum is now dynamically calculated based on the observed telemetry interval.
+    if (windowData.length < minRequiredPointsFor5MinSMA) {
       return null;
     }
 
