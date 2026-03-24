@@ -211,14 +211,14 @@ function generateTelemetry() {
     // Smoker temperature increment
     if (state.temperature < state.targetTemperature && Date.now() >= state.smokerNextIncrementTime) {
       state.temperature = Math.min(state.targetTemperature, state.temperature + 1.0);
-      state.smokerNextIncrementTime = Date.now() + (1 * 60 * 1000); // Next increment in 1 minute
+      state.smokerNextIncrementTime = Date.now() + (30 * 1000); // Next increment in 30 seconds
     }
 
     // Probe temperatures increment (only for active probes)
     for (let i = 0; i < 4; i++) {
       if (i < activeProbes && state.probes[i].current < state.targetTemperature && state.probes[i].current < state.probes[i].target && Date.now() >= state.probeNextIncrementTime[i]) {
         state.probes[i].current = Math.min(state.probes[i].target, state.temperature, state.probes[i].current + 1.0);
-        state.probeNextIncrementTime[i] = Date.now() + ((Math.floor(Math.random() * (8 - 5 + 1)) + 5) * 60 * 1000); // New random 5-8 minute interval
+        state.probeNextIncrementTime[i] = Date.now() + ((Math.floor(Math.random() * (5 - 3 + 1)) + 3) * 60 * 1000); // New random 3-5 minute interval
       } else if (i < activeProbes && state.probes[i].current > state.temperature) {
         // Probe temperature should not exceed smoker temperature
         state.probes[i].current = state.temperature;
