@@ -81,9 +81,10 @@ export function getAndUpdateCookTimerNotificationLock(smokerId: string, currentC
   const notificationLock = state.cookTimer;
   if (notificationLock.lastSeenValue <= 0 && currentCookTimer > 0) {
     // Target has changed, reset the lock
-    notificationLock.lastSeenValue = currentCookTimer;
     notificationLock.notified = false;
   }
+
+    notificationLock.lastSeenValue = currentCookTimer;
 
   return notificationLock;;
 }
