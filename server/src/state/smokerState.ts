@@ -16,7 +16,7 @@ const smokerStates = new Map<string, SmokerNotificationState>();
 
 // Helper to get a clean, default lock
 function getDefaultLock(): NotificationLock {
-  return { lastSeenValue: -1, notified: false };
+  return { lastSeenValue: -1, notified: true };
 }
 
 
@@ -79,7 +79,7 @@ export function getAndUpdateProbeTemperatureNotificationLock(smokerId: string, p
 export function getAndUpdateCookTimerNotificationLock(smokerId: string, currentCookTimer: number): NotificationLock {
   const state = getSmokerState(smokerId);
   const notificationLock = state.cookTimer;
-  if (notificationLock.lastSeenValue == 0 && currentCookTimer > 0) {
+  if (notificationLock.lastSeenValue <= 0 && currentCookTimer > 0) {
     // Target has changed, reset the lock
     notificationLock.lastSeenValue = currentCookTimer;
     notificationLock.notified = false;
