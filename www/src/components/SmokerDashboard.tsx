@@ -286,7 +286,7 @@ export const SmokerDashboard: React.FC = () => {
                 >
                   <div className="font-medium">{smoker.id}</div>
                   <div className="text-sm text-zinc-400">
-                    Last seen: {new Date(smoker.lastSeen).toLocaleString()}
+                    {smoker.status === 'online' ? 'Online' : `Offline}`}
                   </div>
                 </button>
               ))}
