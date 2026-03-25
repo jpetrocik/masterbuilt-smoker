@@ -1,10 +1,9 @@
 // server/src/notifications/notificationService.ts
 import { telemetryEmitter } from '../utils/eventEmitter';
-import { SmokerTelemetryPayload, SmokerTelemetryData, CookHistoryRow } from '../types';
+import { SmokerTelemetryData, CookHistoryRow } from '../types';
 import { getTokensForSmoker, getHistoricalData } from '../database/database';
 import { messaging } from '../firebase/firebaseAdmin';
 import { getAndUpdateCookTimerNotificationLock, getAndUpdateSmokerTemperatureNotificationLock, getAndUpdateProbeTemperatureNotificationLock, getStallNotificationLock } from '../state/smokerState';
-import config from '../config';
 
 export function initNotificationService(): void {
   telemetryEmitter.on('telemetry', (smokerTelemetryData: SmokerTelemetryData) => {

@@ -124,8 +124,11 @@ export function updateSmokerStatus(smokerId: string, status: 'online' | 'offline
   const timestamp = Date.now();
   
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO smokers (id, status, lastSeen)
+    INSERT INTO smokers (id, status, lastSeen)
     VALUES (?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+    status = EXCLUDED.status,
+    lastSeen = EXCLUDED.lastSeen
   `);
   
   stmt.run(smokerId, status, timestamp);
