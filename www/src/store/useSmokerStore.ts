@@ -123,7 +123,7 @@ export const useSmokerStore = create<SmokerState>((set, get) => ({
 
     // 2. The 1-Minute Downsampling Algorithm
     const downsampled: TelemetryData[] = [];
-    let nextThreshold = get().nextThreshold || 0;
+    let nextThreshold = processedData.length > 0 ? processedData[0].timestamp! - (processedData[0].timestamp! % 60000) : 0;
 
     for (const item of processedData) {
       if (item.timestamp! >= nextThreshold) {
