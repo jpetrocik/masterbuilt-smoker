@@ -165,7 +165,6 @@ export function purgeOldHistory(retentionHours: number): void {
   // Purge old history based on timestamp (global retention)
   const globalStmt = db.prepare('DELETE FROM cook_history WHERE timestamp < ?');
   globalStmt.run(globalCutoff);
-  
 }
 
 export function closeDatabase(): void {

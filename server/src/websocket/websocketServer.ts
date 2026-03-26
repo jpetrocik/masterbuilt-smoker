@@ -54,7 +54,7 @@ export function createWebSocketServer(server: http.Server): void {
         return false;
       });
 
-      console.log(`[WebSocket] Fetching historical data for ${smokerId} since ${new Date(since).toISOString()}: ${historicalData.length} records`);
+      console.log(`[WebSocket] Fetching historical data for ${smokerId} since ${new Date(since).toISOString()}: ${reducedHistoricalData.length} records`);
       if (reducedHistoricalData.length > 0) {
         ws.send(JSON.stringify({
           type: 'historical',
