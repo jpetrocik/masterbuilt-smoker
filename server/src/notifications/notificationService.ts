@@ -3,11 +3,16 @@ import { telemetryEmitter } from '../utils/eventEmitter';
 import { SmokerTelemetryData, CookHistoryRow } from '../types';
 import { getTokensForSmoker, getHistoricalData } from '../database/database';
 import { messaging } from '../firebase/firebaseAdmin';
-import { getAndUpdateCookTimerNotificationLock, getAndUpdateSmokerTemperatureNotificationLock, getAndUpdateProbeTemperatureNotificationLock, getStallNotificationLock } from '../state/smokerState';
+import { getAndUpdateCookTimerNotificationLock, getAndUpdateSmokerTemperatureNotificationLock, getAndUpdateProbeTemperatureNotificationLock, getStallNotificationLock, getAndUpdatePresenceLock } from '../state/smokerState';
 
 export function initNotificationService(): void {
   telemetryEmitter.on('telemetry', (smokerTelemetryData: SmokerTelemetryData) => {
     evaluateAndSend(smokerTelemetryData);
+  });
+
+  // Add listener for presence changes
+  telemetryEmitter.on('presenceChange', (smokerId: string, status: 'online' | 'offline') => {
+    handlePresenceChangeNotification(smokerId, status);
   });
 }
 
@@ -199,5 +204,28 @@ async function sendNotification(tokens: string[], title: string, body: string): 
     }
   } catch (error) {
     console.error('[FCM] Error sending notification:', error);
+  }
+}
+
+async function handlePresenceChangeNotification(smokerId: string, status: 'online' | 'offline'): Promise<void> {
+  const lock = getAndUpdatePresenceLock(smokerId, status);
+
+  if (status === 'offline' && !lock.notified) {
+    const tokens = getTokensForSmoker(smokerId);
+    if (tokens.length > 0) {
+      console.log(`Starting 5-minute offline timer for smoker ${smokerId}`);
+      lock.timerId = setTimeout(() => {
+        console.log(`Smoker ${smokerId} is still offline after 5 minutes. Sending notification.`);
+        sendNotification(tokens, 'Smoker Offline!', `Your smoker has gone offline.`);
+        lock.timerId = undefined;
+      }, 5 * 60 * 1000);
+      lock.notified = true; // Prevents creating multiple timers
+    }
+  } else if (status === 'online') {
+    if (lock.timerId) {
+      console.log(`Smoker ${smokerId} came back online. Cancelling offline notification.`);
+      clearTimeout(lock.timerId);
+      lock.timerId = undefined;
+    }
   }
 }

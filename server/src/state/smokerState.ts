@@ -4,11 +4,16 @@ interface NotificationLock {
   notified: boolean;
 }
 
+interface DelayNotificationLock extends NotificationLock {
+  timerId?: NodeJS.Timeout;
+}
+
 interface SmokerNotificationState {
   smoker: NotificationLock;
   cookTimer: NotificationLock;
   probes: { [key: number]: NotificationLock };
-  stallNotified: { [key: number]: NotificationLock };
+  stall: { [key: number]: NotificationLock };
+  status: DelayNotificationLock;
 }
 
 // In-memory state store
@@ -27,7 +32,8 @@ function getSmokerState(smokerId: string): SmokerNotificationState {
       smoker: getDefaultLock(),
       cookTimer: getDefaultLock(),
       probes: {},
-      stallNotified: {},
+      stall: {},
+      status: getDefaultLock(),
     });
   }
   return smokerStates.get(smokerId)!;
@@ -72,6 +78,26 @@ export function getAndUpdateProbeTemperatureNotificationLock(smokerId: string, p
 }
 
 /**
+ * Manages the notification lock for the smoker's online/offline status.
+ * @param smokerId The ID of the smoker.
+ * @param currentStatus 1 for online, 0 for offline.
+ * @returns The notification lock for the smoker's status.
+ */
+export function getAndUpdatePresenceLock(smokerId: string, status: 'online' | 'offline'): DelayNotificationLock {
+  const state = getSmokerState(smokerId);
+  const notificationLock = state.status;
+
+  // If status changes from online (1) to offline (0), reset notified flag
+  const currentStatus = status === 'online' ? 1 : 0;
+  if (notificationLock.lastSeenValue === 1 && currentStatus === 0) {
+    notificationLock.notified = false;
+  }
+
+  notificationLock.lastSeenValue = currentStatus;
+  return notificationLock;
+}
+
+/**
  * Check if the cook timer has been reset after reaching zero.
  * Gets the previous cook timer value and updates it with the current one.
  * @returns The previous cook timer value for the given smoker.
@@ -86,7 +112,7 @@ export function getAndUpdateCookTimerNotificationLock(smokerId: string, currentC
 
     notificationLock.lastSeenValue = currentCookTimer;
 
-  return notificationLock;;
+  return notificationLock;
 }
 
 /**
@@ -94,10 +120,10 @@ export function getAndUpdateCookTimerNotificationLock(smokerId: string, currentC
  */
 export function getStallNotificationLock(smokerId: string, probeIndex: number): NotificationLock {
   const state = getSmokerState(smokerId);
-  const notificationLock: NotificationLock = state.stallNotified[probeIndex] || getDefaultLock();
+  const notificationLock: NotificationLock = state.stall[probeIndex] || getDefaultLock();
 
   // Ensure it's stored back in the state if it was newly created
-  state.stallNotified[probeIndex] = notificationLock; 
+  state.stall[probeIndex] = notificationLock; 
 
   return notificationLock;
 }
