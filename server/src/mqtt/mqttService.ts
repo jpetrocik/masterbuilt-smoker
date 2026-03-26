@@ -58,7 +58,7 @@ export function connectMqtt(): void {
 
   // Periodic cleanup
   setInterval(() => {
-    purgeOldHistory(config.database.maxHistoryHours, config.database.offlinePurgeHours);
+    purgeOldHistory(config.database.maxHistoryHours);
   }, 60 * 60 * 1000); // Run every hour
 }
 

@@ -12,7 +12,6 @@
   },
   "database": {
     "path": "./data/smoker_history.db",
-    "maxHistoryHours": 6,
-    "offlinePurgeHours": 1
+    "maxHistoryHours": 6
   }
 }
