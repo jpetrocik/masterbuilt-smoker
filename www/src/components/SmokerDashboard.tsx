@@ -397,9 +397,9 @@ export const SmokerDashboard: React.FC = () => {
 
           {/* Carousel Indicators */}
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-            <div className={cn("w-2 h-2 rounded-full", carouselIndex === 0 ? "bg-orange-500" : "bg-zinc-600")} />
-            <div className={cn("w-2 h-2 rounded-full", carouselIndex === 1 ? "bg-orange-500" : "bg-zinc-600")} />
-            <div className={cn("w-2 h-2 rounded-full", carouselIndex === 2 ? "bg-orange-500" : "bg-zinc-600")} />
+            <button aria-label="Smoker Temperature" onClick={() => setCarouselIndex(0)} className={cn("w-2 h-2 rounded-full cursor-pointer", carouselIndex === 0 ? "bg-orange-500" : "bg-zinc-600")} />
+            <button aria-label="Cook Timer" onClick={() => setCarouselIndex(1)} className={cn("w-2 h-2 rounded-full cursor-pointer", carouselIndex === 1 ? "bg-orange-500" : "bg-zinc-600")} />
+            <button aria-label="Elapsed Time" onClick={() => setCarouselIndex(2)} className={cn("w-2 h-2 rounded-full cursor-pointer", carouselIndex === 2 ? "bg-orange-500" : "bg-zinc-600")} />
           </div>
         </div>
 
