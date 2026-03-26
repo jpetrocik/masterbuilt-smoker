@@ -23,7 +23,7 @@ const RECONNECT_MULTIPLIER = 2;
 
 export function useTelemetryWebSocket(
   smokerId: string | null,
-  sinceSeconds: number = 10800 // 3 hours
+  sinceSeconds: number = 6 * 60 * 60 // 6 hours
 ): void {
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const reconnectDelay = useRef(MIN_RECONNECT_DELAY);

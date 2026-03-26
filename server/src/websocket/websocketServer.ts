@@ -44,11 +44,21 @@ export function createWebSocketServer(server: http.Server): void {
       const since = Date.now() - (sinceSeconds * 1000);
       
       const historicalData = getHistoricalData(smokerId, since);
+
+      let nextTimestamp = 0;
+      const reducedHistoricalData = historicalData.filter(row => {
+        if (row.timestamp >= nextTimestamp) {
+          nextTimestamp = Math.floor(row.timestamp / 60000) * 60000 + 60000; // Next minute mark
+          return true;
+        }
+        return false;
+      });
+
       console.log(`[WebSocket] Fetching historical data for ${smokerId} since ${new Date(since).toISOString()}: ${historicalData.length} records`);
-      if (historicalData.length > 0) {
+      if (reducedHistoricalData.length > 0) {
         ws.send(JSON.stringify({
           type: 'historical',
-          data: historicalData
+          data: reducedHistoricalData
         }));
       }
     }
