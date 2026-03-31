@@ -16,18 +16,22 @@ export const TargetTemperatureModal = ({
   title,
   currentTarget
 }: TargetTemperatureModalProps) => {
-  const [tempVal, setTempVal] = useState(currentTarget);
+  const [tempVal, setTempState] = useState(currentTarget);
   const decreaseRef = useRef<HTMLButtonElement>(null);
   const increaseRef = useRef<HTMLButtonElement>(null);
 
+  const setTemp = (newTemp: number) => {
+    setTempState(Math.max(0, Math.min(300, newTemp)));
+  }
+
   const decreaseHandlers = useLongPress(decreaseRef, {
-    onClick: () => setTempVal(prev => prev - 1),
-    onLongPress: () => setTempVal(prev => prev - 5),
+    onClick: () => setTemp(tempVal - 1),
+    onLongPress: () => setTemp(tempVal - 5),
   });
 
   const increaseHandlers = useLongPress(increaseRef, {
-    onClick: () => setTempVal(prev => prev + 1),
-    onLongPress: () => setTempVal(prev => prev + 5),
+    onClick: () => setTemp(tempVal + 1),
+    onLongPress: () => setTemp(tempVal + 5),
   });
 
   if (!isOpen) return null;
@@ -57,7 +61,7 @@ export const TargetTemperatureModal = ({
               type="number" 
               inputMode="numeric"
               value={tempVal}
-              onChange={(e) => setTempVal(Number(e.target.value))}
+              onChange={(e) => setTemp(Number(e.target.value))}
               // The crazy bracket classes at the end hide the default browser spinner arrows
               className="w-full bg-transparent py-4 text-right text-5xl font-black text-orange-500 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
