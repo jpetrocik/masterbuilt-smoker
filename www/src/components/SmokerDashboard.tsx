@@ -16,6 +16,7 @@ import { useTelemetryWebSocket, sendCommand } from '../lib/useTelemetryWebSocket
 import type { Smoker } from '../lib/api';
 import { getSmokers } from '../lib/api';
 import { TargetTemperatureModal } from './TargetTemperatureModal';
+import { SmokerPickerModal } from './SmokerPickerModal';
 import { TimerSetModal } from './TimerSetModal';
 import { LostConnectionModal } from './LostConnectionModal';
 
@@ -106,6 +107,20 @@ export const SmokerDashboard: React.FC = () => {
     });
   };
 
+  const reloadSmokers = async () => {
+    try {
+      const data = await getSmokers('online');
+      setSmokers(data);
+      setShowPicker(true);
+    } catch (err) {
+      console.error('Failed to load smokers:', err);
+    }
+  };
+
+  const handleSelectSmoker = (smokerId: string) => {
+    setSelectedSmokerId(smokerId);
+    setShowPicker(false);
+  };
 
   // Load smokers on mount
   useEffect(() => {
@@ -269,36 +284,17 @@ export const SmokerDashboard: React.FC = () => {
         title="Set Cook Timer"
         currentValueInSeconds={cookTimer}
       />
-      {/* Smoker Picker Dialog */}
-      {showPicker && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-zinc-900 rounded-xl p-6 max-w-sm w-full mx-4 border border-zinc-800">
-            <h2 className="text-xl font-bold text-orange-500 mb-4">Select Smoker</h2>
-            <div className="space-y-2">
-              {smokers.map((smoker) => (
-                <button
-                  key={smoker.id}
-                  onClick={() => {
-                    setSelectedSmokerId(smoker.id);
-                    setShowPicker(false);
-                  }}
-                  className="w-full text-left p-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
-                >
-                  <div className="font-medium">{smoker.id}</div>
-                  <div className="text-sm text-zinc-400">
-                    {smoker.status === 'online' ? 'Online' : `Offline}`}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <SmokerPickerModal
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+        onSelect={handleSelectSmoker}
+        smokers={smokers}
+      />
 
       {/* Header */}
       <header className="mb-6 flex items-center justify-between">
         <button 
-          onClick={() => setShowPicker(true)}
+          onClick={reloadSmokers}
           className="text-2xl font-bold text-orange-500 text-left bg-transparent disabled:cursor-not-allowed hover:opacity-80 transition-opacity"
         >
           Smoker {selectedSmokerId ? `#${selectedSmokerId}` : ''}
