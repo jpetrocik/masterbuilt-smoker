@@ -4,7 +4,7 @@
 #define WIFI_SSID "PNET"
 #define WIFI_PASSWORD "5626278472"
 
-#define LCD_SUPPORTED  // Uncomment to enable LCD support
+//#define LCD_SUPPORTED  // Uncomment to enable LCD support
 #define OTA_ENABLED
 
 #define ADC_SAMPLE_SIZE 10
@@ -44,7 +44,7 @@
 #define FERINHEIT // Uncomment to use Fahrenheit instead of Celsius
 
 #define MQTT_ENABLED
-#define MQTT_SERVER "petrocik.net"
+#define MQTT_SERVER "mqtt.petrocik.net"
 #define MQTT_CLIENT_ID_PREFIX "smoker"
 #define MQTT_STATUS_TOPIC "smoker/%d/status"
 #define MQTT_COMMAND_TOPIC "smoker/%d/command"

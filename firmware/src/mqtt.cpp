@@ -59,6 +59,7 @@ void mqtt_init(CommandEventHandler commandEventHandler)
     Serial.println("Connecting to MQTT Server....");
     mqtt_client.setServer(MQTT_SERVER, 1883);
     mqtt_client.setCallback(mqtt_callback);
+    mqtt_client.setBufferSize(512);
     // mqtt_connect();
     //  mqtt_client.setKeepAlive(120);
 }

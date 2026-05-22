@@ -3,7 +3,7 @@
 #include "units.h"
 
 JsonDocument status_statusJson;
-char status_jsonBuffer[128];
+char status_jsonBuffer[512];
 
 void status_init()
 {
