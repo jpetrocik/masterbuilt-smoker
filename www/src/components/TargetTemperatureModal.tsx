@@ -26,12 +26,12 @@ export const TargetTemperatureModal = ({
 
   const decreaseHandlers = useLongPress(decreaseRef, {
     onClick: () => setTemp(tempVal - 1),
-    onLongPress: () => setTemp(tempVal - 5),
+    onLongPress: () => setTempState(prev => Math.max(0, Math.min(300, prev - 5))),
   });
 
   const increaseHandlers = useLongPress(increaseRef, {
     onClick: () => setTemp(tempVal + 1),
-    onLongPress: () => setTemp(tempVal + 5),
+    onLongPress: () => setTempState(prev => Math.max(0, Math.min(300, prev + 5))),
   });
 
   if (!isOpen) return null;
