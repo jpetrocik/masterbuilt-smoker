@@ -12,6 +12,7 @@ import { initDatabase } from './database/database';
 import { connectMqtt } from './mqtt/mqttService';
 import { createWebSocketServer } from './websocket/websocketServer';
 import { initNotificationService } from './notifications/notificationService';
+import { initCollagenService } from './collagen/collagenService';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,9 @@ connectMqtt();
 
 // Initialize Notification Service
 initNotificationService();
+
+// Initialize Collagen Service
+initCollagenService();
 
 // Swagger setup (development only)
 if (process.env.NODE_ENV === 'development') {
