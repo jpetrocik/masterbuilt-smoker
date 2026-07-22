@@ -1,5 +1,5 @@
 {
-  "smokerId": "1234567",
+  "smokerId": "test",
   "mqttBroker": "mqtt://hermes:1883",
   "publishInterval": 5000,
   "activeProbes": 1

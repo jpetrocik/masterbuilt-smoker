@@ -8,7 +8,10 @@
 #include "units.h"
 #include "debug.h"
 
-double Kp = 300, Ki = 0.08, Kd = 0;
+//Maintain Temp PID settings
+//double Kp = 150, Ki = 0.08, Kd = 20;
+
+double Kp = 200, Ki = 0.08, Kd = 10;
 
 // adc buffers
 uint16_t temp_buffer[ADC_SAMPLE_SIZE] = {0};
@@ -122,7 +125,7 @@ double readTemperature(Adafruit_ADS1115 *ads, int input, uint16_t series_resisto
 
   reading = ads->readADC_SingleEnded(input);
 
-  voltage = reading * 187500ul / 1000000;
+  voltage = reading * 125000ul / 1000000;
 
   // TODO Handle missing probe
   if (voltage == 0)
@@ -285,11 +288,19 @@ void setup(void)
     Serial.println("Failed to initialize ADS1.");
     abortError = true;
   }
+  else
+  {
+    ads1.setGain(GAIN_ONE); // Sets ADS1 range to +/- 4.096V
+  }
 
   if (!ads2.begin(0x49))
   {
     Serial.println("Failed to initialize ADS2.");
     abortError = true;
+  }
+  else
+  {
+    ads2.setGain(GAIN_ONE); // Sets ADS2 range to +/- 4.096V
   }
 
 #ifdef LCD_SUPPORTED

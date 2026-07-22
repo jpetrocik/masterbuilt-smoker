@@ -9,29 +9,29 @@
 
 #define ADC_SAMPLE_SIZE 10
 
-#define TEMP_SERIES_RESISTOR 10000
+#define TEMP_SERIES_RESISTOR 22000
 #define PROBE_SERIES_RESISTOR 10000
 
 #define HEAT_PIN 5
 #define LED_PIN 2 //TODO Consider adding LED to HEAT curcuit
 
 //https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
-//  22c 56000ohm
-//  79c  7934
-// 122c  2509ohm
-#define TEMP_A 0.3299035829e-3
-#define TEMP_B 2.863296026e-4
-#define TEMP_C -0.8445103122e-7
-#define TEMP_BETA 3835.15
+//  81(27.2)          48407
+//  174(78.9)         8456
+//  286(141)          2094
+#define TEMP_A -0.2613164095e-3
+#define TEMP_B 3.670228955e-4
+#define TEMP_C -2.935194202e-7
+#define TEMP_BETA 3568.45
 
 //https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
-//  24c  107021ohm
-//  78c  13354ohm
-// 137c   2581ohm
-#define PROBE_A 0.4732619361e-3
-#define PROBE_B 2.504413606e-4
-#define PROBE_C -0.05321188939e-7
-#define PROBE_BETA 4141.75
+//  81(27.2)           112222
+//  174(78.9)          14000
+//  286(141)           2619
+#define PROBE_A 0.1772729832e-3
+#define PROBE_B 2.952734660e-4
+#define PROBE_C -1.789284692e-7
+#define PROBE_BETA 4256.98
 
 #define MIN_TEMP 37.0
 #define MAX_TEMP 135.0
