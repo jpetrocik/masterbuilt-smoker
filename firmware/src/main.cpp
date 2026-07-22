@@ -185,12 +185,12 @@ void handleCommandEvent(char *data)
      */
     if (newRequestedTargetTemp == 0.0)
     {
-      currentSmokerState.cookTime = 0;
+      currentSmokerState.cookStartTime = 0;
       currentSmokerState.cookEndTime = 0;
     }
     else if (currentSmokerState.targetTemperature == 0.0)
     {
-      currentSmokerState.cookTime = millis();
+      currentSmokerState.cookStartTime = millis();
     }
     currentSmokerState.targetTemperature = newRequestedTargetTemp;
     heatControlPid.SetMode(AUTOMATIC);

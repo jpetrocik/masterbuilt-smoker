@@ -21,7 +21,7 @@ char* status_stateJson(status_state *state)
     status_statusJson["smokerTemperature"] = units_toLocalTemperature(state->temperature);
     status_statusJson["smokerTarget"] = units_toLocalTemperature(state->targetTemperature);
     status_statusJson["cookTimer"] = state->cookEndTime > 0 ? (state->cookEndTime - millis()) / 1000 : 0;
-    status_statusJson["cookTime"] = state->cookTime > 0 ? (millis() - state->cookTime) / 1000 : 0;
+    status_statusJson["cookTime"] = state->cookStartTime > 0 ? (millis() - state->cookStartTime) / 1000 : 0;
     status_statusJson["dutyCycle"] = state->dutyCycle;
 
     status_statusJson.remove("probe1Temperature");

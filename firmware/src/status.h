@@ -20,7 +20,7 @@ struct status_state {
   double targetProbe4 = 0;
   bool alarmProbe4 = 0;
   long cookEndTime = 0;
-  long cookTime = 0;
+  long cookStartTime = 0;
   double dutyCycle = 0;
 }; 
 
