@@ -22,6 +22,14 @@ export function initNotificationService(): void {
       sendNotification(tokens, 'Meat Stall Detected!', `Probe ${probeIndex} has entered the stall at ${probeTemp}°F.`);
     }
   });
+
+  // Add listener for generic notification events from any service
+  telemetryEmitter.on('sendNotification', (smokerId: string, title: string, message: string) => {
+    const tokens = getTokensForSmoker(smokerId);
+    if (tokens.length > 0) {
+      sendNotification(tokens, title, message);
+    }
+  });
 }
 
 function evaluateAndSend(smokerTelemetryData: SmokerTelemetryData): void {

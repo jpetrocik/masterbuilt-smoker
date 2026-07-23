@@ -7,12 +7,13 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import path from 'path';
 import routes from './routes';
 import fcmRoutes from './routes/fcmRoutes';
+import brisketRecipeRoutes from './routes/brisketRecipeRoutes';
 import config from './config';
 import { initDatabase } from './database/database';
 import { connectMqtt } from './mqtt/mqttService';
 import { createWebSocketServer } from './websocket/websocketServer';
 import { initNotificationService } from './notifications/notificationService';
-import { initCollagenService } from './collagen/collagenService';
+import { initBrisketRecipeService } from './brisket/brisketRecipeService';
 import { initStallDetectionService } from './stall/stallDetectionService';
 
 // Load environment variables
@@ -37,6 +38,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api', routes);
 app.use('/api/fcm', fcmRoutes);
+app.use('/api/brisket-recipe', brisketRecipeRoutes);
 
 // Connect to MQTT broker
 connectMqtt();
@@ -47,8 +49,8 @@ initStallDetectionService();
 // Initialize Notification Service
 initNotificationService();
 
-// Initialize Collagen Service
-initCollagenService();
+// Initialize Brisket Recipe Service
+initBrisketRecipeService();
 
 // Swagger setup (development only)
 if (process.env.NODE_ENV === 'development') {
