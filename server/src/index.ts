@@ -13,6 +13,7 @@ import { connectMqtt } from './mqtt/mqttService';
 import { createWebSocketServer } from './websocket/websocketServer';
 import { initNotificationService } from './notifications/notificationService';
 import { initCollagenService } from './collagen/collagenService';
+import { initStallDetectionService } from './stall/stallDetectionService';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +40,9 @@ app.use('/api/fcm', fcmRoutes);
 
 // Connect to MQTT broker
 connectMqtt();
+
+// Initialize Stall Detection Service
+initStallDetectionService();
 
 // Initialize Notification Service
 initNotificationService();
