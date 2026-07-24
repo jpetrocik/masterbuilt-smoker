@@ -8,8 +8,8 @@
 #include "units.h"
 #include "debug.h"
 
-//Maintain Temp PID settings
-//double Kp = 150, Ki = 0.08, Kd = 20;
+// Maintain Temp PID settings
+// double Kp = 150, Ki = 0.08, Kd = 20;
 
 double Kp = 200, Ki = 0.08, Kd = 10;
 
@@ -198,19 +198,25 @@ void handleCommandEvent(char *data)
   else if (strncmp(data, "setKp=", 6) == 0)
   {
     Kp = atof(&data[6]);
+#ifdef DEBUG_PROBE
     debug_sendPidSettings(Kp, Ki, Kd);
+#endif
     heatControlPid.SetTunings(Kp, Ki, Kd);
   }
   else if (strncmp(data, "setKd=", 6) == 0)
   {
     Kd = atof(&data[6]);
+#ifdef DEBUG_PROBE
     debug_sendPidSettings(Kp, Ki, Kd);
+#endif
     heatControlPid.SetTunings(Kp, Ki, Kd);
   }
   else if (strncmp(data, "setKi=", 6) == 0)
   {
     Ki = atof(&data[6]);
+#ifdef DEBUG_PROBE
     debug_sendPidSettings(Kp, Ki, Kd);
+#endif
     heatControlPid.SetTunings(Kp, Ki, Kd);
   }
   else if (strncmp(data, "setCookTime=", 12) == 0)

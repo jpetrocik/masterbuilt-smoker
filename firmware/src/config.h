@@ -54,6 +54,6 @@
 #define ADS1 1
 #define ADS2 2
 
-#define DEBUG_PROBE
+//#define DEBUG_PROBE
 
 #endif // CONFIG_H
