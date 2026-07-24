@@ -6,14 +6,14 @@ import { getStallNotificationLock } from '../state/smokerState';
 
 // Stall detection configuration constants
 const STALL_SMOKER_TARGET_MIN_F = 190;
-const STALL_PROBE_TEMP_MIN_F = 150;
-const STALL_PROBE_TEMP_MAX_F = 175;
+const STALL_PROBE_TEMP_MIN_F = 140;
+const STALL_PROBE_TEMP_MAX_F = 190;
 const STALL_HISTORY_WINDOW_MS = 30 * 60 * 1000;
-const STALL_MIN_HISTORY_AGE_MS = 25 * 60 * 1000;
+const STALL_MIN_HISTORY_AGE_MS = 15 * 60 * 1000;
 const STALL_MIN_HISTORY_POINTS = 13;
 const STALL_SMA_WINDOW_MS = 5 * 60 * 1000;
-const STALL_COMPARISON_OFFSET_MS = 20 * 60 * 1000;
-const STALL_DELTA_THRESHOLD_F = 1.0;
+const STALL_COMPARISON_OFFSET_MS = 10 * 60 * 1000;
+const STALL_DELTA_THRESHOLD_F = 2.0;
 
 export function initStallDetectionService(): void {
   telemetryEmitter.on('telemetry', (data: SmokerTelemetryData) => {
@@ -36,12 +36,12 @@ export function initStallDetectionService(): void {
  * Algorithm Logic:
  * 1. Gating Conditions:
  *    - Smoker target temperature must be > 190°F.
- *    - Probe temperature must be between 150°F and 175°F.
+ *    - Probe temperature must be between 140°F and 190°F.
  * 2. Smoothing (Noise Reduction):
  *    - Calculates a Simple Moving Average (SMA) of the probe temperature over the most recent 5-minute window.
- *    - Calculates a Historical SMA for a 5-minute window exactly 20 minutes ago (T-25 mins to T-20 mins).
+ *    - Calculates a Historical SMA for a 5-minute window exactly 10 minutes ago (T-15 mins to T-10 mins).
  * 3. Trigger Evaluation:
- *    - Stall is detected if the temperature increase (Current SMA - Historical SMA) is <= 1.0°F over that 20-minute span.
+ *    - Stall is detected if the temperature increase (Current SMA - Historical SMA) is <= 2.0°F over that 10-minute span.
  */
 function detectMeatStall(smokerId: string, probeIndex: number, probeTemp: number | undefined, smokerTarget: number): boolean {
 
@@ -128,6 +128,6 @@ function detectMeatStall(smokerId: string, probeIndex: number, probeTemp: number
   // 3. The Trigger Evaluation
   const delta = currentSMA - historicalSMA;
 
-  // If the temperature increase is <= 1.0°F over that 20-minute span, the meat has stalled.
+  // If the temperature increase is <= 2.0°F over that 10-minute span, the meat has stalled.
   return delta <= STALL_DELTA_THRESHOLD_F;
 }

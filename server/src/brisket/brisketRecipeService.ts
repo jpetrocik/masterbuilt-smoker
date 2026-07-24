@@ -4,7 +4,7 @@ import { publishCommand } from '../mqtt/mqttService';
 import { SmokerTelemetryData } from '../types';
 
 const SAMPLE_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
-const COLLAGEN_COMPLETION_THRESHOLD = 90; // percent
+const COLLAGEN_COMPLETION_THRESHOLD = 85; // percent
 const BRISKET_FINISHED_TEMP_F = 200; // probe target when resting
 
 // Collagen rendering rates from https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/
@@ -138,6 +138,7 @@ export function initBrisketRecipeService(): void {
       if (!state.finishedNotified && data.probe1Temperature >= BRISKET_FINISHED_TEMP_F) {
         state.finishedNotified = true;
         state.phase = 'finished';
+        publishCommand(data.smokerId, 'setTemp=150');
         console.log(`[BrisketRecipe] smokerId=${data.smokerId} brisket finished — probe reached ${data.probe1Temperature}°F`);
         telemetryEmitter.emit('sendNotification', data.smokerId, 'Brisket Finished', 'Your brisket has finished cooking and is ready to serve.');
       }
@@ -155,8 +156,8 @@ export function initBrisketRecipeService(): void {
     // Transition to wrapped phase
     state.wrappedNotified = true;
     state.phase = 'wrapped';
-    publishCommand(smokerId, 'setTemp=250');
-    console.log(`[BrisketRecipe] smokerId=${smokerId} stall detected at ${probeTemp}°F — transitioning to wrapped phase, raising temp to 250°F`);
+    publishCommand(smokerId, 'setTemp=265');
+    console.log(`[BrisketRecipe] smokerId=${smokerId} stall detected at ${probeTemp}°F — transitioning to wrapped phase, raising temp to 265°F`);
     telemetryEmitter.emit('sendNotification', smokerId, 'Wrap Your Brisket!', `Stall detected at ${probeTemp}°F — time to wrap.`);
   });
 }
