@@ -4,8 +4,9 @@ import { publishCommand } from '../mqtt/mqttService';
 import { SmokerTelemetryData } from '../types';
 
 const SAMPLE_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
-const COLLAGEN_COMPLETION_THRESHOLD = 85; // percent
-const BRISKET_FINISHED_TEMP_F = 200; // probe target when resting
+const COLLAGEN_RESTING_THRESHOLD = 85; // percent - threshold to transition to resting phase
+const RESTING_TRANSITION_PROBE_TEMP_F = 195; // probe temp to trigger resting phase (whichever comes first: 85% OR 195°F)
+const BRISKET_FINISHED_TEMP_F = 200; // probe target when brisket is finished
 
 // Collagen rendering rates from https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/
 const RATE_TABLE_F: { tempF: number; ratePerHour: number }[] = [
@@ -125,8 +126,8 @@ export function initBrisketRecipeService(): void {
 
       console.log(`[BrisketRecipe] smokerId=${data.smokerId} phase=${state.phase} temp=${data.probe1Temperature}°F rate=${rate.toFixed(2)}%/hr collagen=${state.cumulativeCollagenPercent.toFixed(2)}%`);
 
-      // Check if resting should start: collagen >= 90% OR probe already reached target temp
-      if (!state.restingNotified && (state.cumulativeCollagenPercent >= COLLAGEN_COMPLETION_THRESHOLD || data.probe1Temperature >= BRISKET_FINISHED_TEMP_F)) {
+      // Check if resting should start: collagen >= 85% OR probe reached 195°F (whichever comes first)
+      if (!state.restingNotified && (state.cumulativeCollagenPercent >= COLLAGEN_RESTING_THRESHOLD || data.probe1Temperature >= RESTING_TRANSITION_PROBE_TEMP_F)) {
         state.restingNotified = true;
         state.phase = 'resting';
         publishCommand(data.smokerId, 'setTemp=150');
@@ -134,12 +135,12 @@ export function initBrisketRecipeService(): void {
         telemetryEmitter.emit('sendNotification', data.smokerId, 'Brisket Resting', 'Collagen rendering is complete — your brisket is resting.');
       }
 
-      // Check if brisket has finished (reached target temp)
-      if (!state.finishedNotified && data.probe1Temperature >= BRISKET_FINISHED_TEMP_F) {
+      // Check if brisket has finished: probe reached 200°F OR collagen reached 100% (whichever comes first)
+      if (!state.finishedNotified && (data.probe1Temperature >= BRISKET_FINISHED_TEMP_F || state.cumulativeCollagenPercent >= 100)) {
         state.finishedNotified = true;
         state.phase = 'finished';
         publishCommand(data.smokerId, 'setTemp=150');
-        console.log(`[BrisketRecipe] smokerId=${data.smokerId} brisket finished — probe reached ${data.probe1Temperature}°F`);
+        console.log(`[BrisketRecipe] smokerId=${data.smokerId} brisket finished (collagen=${state.cumulativeCollagenPercent.toFixed(2)}%, temp=${data.probe1Temperature}°F) — cook complete`);
         telemetryEmitter.emit('sendNotification', data.smokerId, 'Brisket Finished', 'Your brisket has finished cooking and is ready to serve.');
       }
     }
