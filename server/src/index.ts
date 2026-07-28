@@ -38,7 +38,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api', routes);
 app.use('/api/fcm', fcmRoutes);
-app.use('/api/brisket-recipe', brisketRecipeRoutes);
+app.use('/api/recipe/brisket', brisketRecipeRoutes);
 
 // Connect to MQTT broker
 connectMqtt();

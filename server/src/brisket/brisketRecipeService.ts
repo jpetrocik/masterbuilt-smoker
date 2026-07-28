@@ -6,7 +6,9 @@ import { SmokerTelemetryData } from '../types';
 const SAMPLE_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 const COLLAGEN_RESTING_THRESHOLD = 85; // percent - threshold to transition to resting phase
 const RESTING_TRANSITION_PROBE_TEMP_F = 195; // probe temp to trigger resting phase (whichever comes first: 85% OR 195°F)
-const BRISKET_FINISHED_TEMP_F = 200; // probe target when brisket is finished
+const BRISKET_START_COOK_TEMP_F = 250; // pit temp to start cooking
+const BRISKET_WRAP_COOK_TEMP_F = 250; // pit temp to accelerate heating after stall/wrap
+const BRISKET_RESTING_COOK_TEMP_F = 150; // pit temp during resting phase
 
 // Collagen rendering rates from https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/
 const RATE_TABLE_F: { tempF: number; ratePerHour: number }[] = [
@@ -83,10 +85,10 @@ export function startBrisketRecipe(smokerId: string): void {
   recipeStates.set(smokerId, state);
 
   // Publish initial commands
-  publishCommand(smokerId, 'setTemp=225');
-  publishCommand(smokerId, 'setProbe1Target=200');
+  publishCommand(smokerId, `setTemp=${BRISKET_START_COOK_TEMP_F}`);
+  publishCommand(smokerId, `setProbe1Target=${RESTING_TRANSITION_PROBE_TEMP_F}`);
 
-  console.log(`[BrisketRecipe] smokerId=${smokerId} initialized to 225°F pit, 200°F probe target`);
+  console.log(`[BrisketRecipe] smokerId=${smokerId} initialized to ${BRISKET_START_COOK_TEMP_F}°F pit, ${RESTING_TRANSITION_PROBE_TEMP_F}°F probe target`);
 }
 
 export function stopBrisketRecipe(smokerId: string): void {
@@ -130,16 +132,15 @@ export function initBrisketRecipeService(): void {
       if (!state.restingNotified && (state.cumulativeCollagenPercent >= COLLAGEN_RESTING_THRESHOLD || data.probe1Temperature >= RESTING_TRANSITION_PROBE_TEMP_F)) {
         state.restingNotified = true;
         state.phase = 'resting';
-        publishCommand(data.smokerId, 'setTemp=150');
-        console.log(`[BrisketRecipe] smokerId=${data.smokerId} resting phase started (collagen=${state.cumulativeCollagenPercent.toFixed(2)}%, temp=${data.probe1Temperature}°F) — lowering temp to 150°F`);
+        publishCommand(data.smokerId, `setTemp=${BRISKET_RESTING_COOK_TEMP_F}`);
+        console.log(`[BrisketRecipe] smokerId=${data.smokerId} resting phase started (collagen=${state.cumulativeCollagenPercent.toFixed(2)}%, temp=${data.probe1Temperature}°F) — lowering temp to ${BRISKET_RESTING_COOK_TEMP_F}°F`);
         telemetryEmitter.emit('sendNotification', data.smokerId, 'Brisket Resting', 'Collagen rendering is complete — your brisket is resting.');
       }
 
-      // Check if brisket has finished: probe reached 200°F OR collagen reached 100% (whichever comes first)
-      if (!state.finishedNotified && (data.probe1Temperature >= BRISKET_FINISHED_TEMP_F || state.cumulativeCollagenPercent >= 100)) {
+      // Check if brisket has finished: collagen reached 100%
+      if (!state.finishedNotified && state.cumulativeCollagenPercent >= 100) {
         state.finishedNotified = true;
         state.phase = 'finished';
-        publishCommand(data.smokerId, 'setTemp=150');
         console.log(`[BrisketRecipe] smokerId=${data.smokerId} brisket finished (collagen=${state.cumulativeCollagenPercent.toFixed(2)}%, temp=${data.probe1Temperature}°F) — cook complete`);
         telemetryEmitter.emit('sendNotification', data.smokerId, 'Brisket Finished', 'Your brisket has finished cooking and is ready to serve.');
       }
@@ -157,8 +158,8 @@ export function initBrisketRecipeService(): void {
     // Transition to wrapped phase
     state.wrappedNotified = true;
     state.phase = 'wrapped';
-    publishCommand(smokerId, 'setTemp=265');
-    console.log(`[BrisketRecipe] smokerId=${smokerId} stall detected at ${probeTemp}°F — transitioning to wrapped phase, raising temp to 265°F`);
+    publishCommand(smokerId, `setTemp=${BRISKET_WRAP_COOK_TEMP_F}`);
+    console.log(`[BrisketRecipe] smokerId=${smokerId} stall detected at ${probeTemp}°F — transitioning to wrapped phase, raising temp to ${BRISKET_WRAP_COOK_TEMP_F}°F`);
     telemetryEmitter.emit('sendNotification', smokerId, 'Wrap Your Brisket!', `Stall detected at ${probeTemp}°F — time to wrap.`);
   });
 }
