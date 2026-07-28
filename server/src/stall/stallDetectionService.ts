@@ -12,20 +12,32 @@ const STALL_MIN_HISTORY_AGE_MS = 15 * 60 * 1000;
 const STALL_MIN_HISTORY_POINTS = 13;
 const STALL_SMA_WINDOW_MS = 2 * 60 * 1000;  // 2-minute window for each SMA snapshot
 const STALL_DELTA_THRESHOLD_F = 2.0;
+const STALL_CHECK_INTERVAL_MS = 5 * 60 * 1000;  // Run stall detection every 5 minutes for all smokers
+
+// Store current telemetry data per smokerId
+const latestTelemetryData = new Map<string, SmokerTelemetryData>();
 
 export function initStallDetectionService(): void {
+  // Capture current telemetry data on every event
   telemetryEmitter.on('telemetry', (data: SmokerTelemetryData) => {
-    for (let i = 1; i <= 4; i++) {
-      const probeTemp = data[`probe${i}Temperature` as keyof SmokerTelemetryData] as number | undefined;
-      if (probeTemp === undefined) continue;
+    latestTelemetryData.set(data.smokerId, data);
+  });
 
-      const lock = getStallNotificationLock(data.smokerId, i);
-      if (!lock.notified && detectMeatStall(data.smokerId, i, probeTemp, data.smokerTarget)) {
-        lock.notified = true;
-        telemetryEmitter.emit('stallDetected', data.smokerId, i, probeTemp);
+  // Run stall detection every 5 minutes for all active smokers
+  setInterval(() => {
+    for (const [smokerId, data] of latestTelemetryData.entries()) {
+      for (let i = 1; i <= 4; i++) {
+        const probeTemp = data[`probe${i}Temperature` as keyof SmokerTelemetryData] as number | undefined;
+        if (probeTemp === undefined) continue;
+
+        const lock = getStallNotificationLock(smokerId, i);
+        if (!lock.notified && detectMeatStall(smokerId, i, probeTemp, data.smokerTarget)) {
+          lock.notified = true;
+          telemetryEmitter.emit('stallDetected', smokerId, i, probeTemp);
+        }
       }
     }
-  });
+  }, STALL_CHECK_INTERVAL_MS);
 }
 
 /**
@@ -50,7 +62,7 @@ function detectMeatStall(smokerId: string, probeIndex: number, probeTemp: number
     probeTemp < STALL_PROBE_TEMP_MIN_F ||
     smokerTarget < STALL_SMOKER_TARGET_MIN_F
   ) {
-    return false;
+    return false;  // Gating condition failed
   }
 
   const now = Date.now();
@@ -66,6 +78,9 @@ function detectMeatStall(smokerId: string, probeIndex: number, probeTemp: number
 
   const recentWindowData = historicalData.filter(row => row.timestamp >= recentWindowStart && row.timestamp <= now);
   const historicalWindowData = historicalData.filter(row => row.timestamp >= historicalWindowStart && row.timestamp <= historicalWindowEnd);
+
+  // Debug: Log data window sizes
+  console.log(`[StallDetection] smokerId=${smokerId} probe${probeIndex}: recent=${recentWindowData.length} points, historical=${historicalWindowData.length} points`);
 
   // Calculate SMA for both data sets
   const probeKey = `probe${probeIndex}Temperature` as keyof CookHistoryRow;
@@ -88,12 +103,18 @@ function detectMeatStall(smokerId: string, probeIndex: number, probeTemp: number
 
   // If either window has insufficient valid readings, cannot calculate reliable SMA
   if (recentSMATemps === null || historicalSMATemps === null) {
+    console.log(`[StallDetection] smokerId=${smokerId} probe${probeIndex}: Insufficient valid data - recent SMA=${recentSMATemps}, historical SMA=${historicalSMATemps}`);
     return false;
   }
 
   // Compare the two values to determine if a stall is occurring
   const delta = recentSMATemps - historicalSMATemps;
+  console.log(`[StallDetection] smokerId=${smokerId} probe${probeIndex}: recent SMA=${recentSMATemps.toFixed(1)}°F, historical SMA=${historicalSMATemps.toFixed(1)}°F, delta=${delta.toFixed(1)}°F, stalled=${delta <= STALL_DELTA_THRESHOLD_F}`);
 
-  // If the temperature increase is <= 2.0°F over that 10-minute span, the meat has stalled.
-  return delta <= STALL_DELTA_THRESHOLD_F;
+  // If the temperature increase is <= 2.0°F over that 11-minute span, the meat has stalled.
+  if (delta <= STALL_DELTA_THRESHOLD_F) {
+    return true;
+  }
+
+  return false;
 }
