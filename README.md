@@ -18,7 +18,7 @@ A Progressive Web App (PWA) that can be installed on your phone to run exactly l
 ![Dashboard Screenshot](assets/screenshots/dashboard.png)
 
 ### 2. Backend (./server/README.md)
-The central nervous system of the project. It acts as the bridge between the physical smoker and the mobile application. The backend handles the complex algorithms for stall detection and logs high-resolution temperature history. The system is highly fault-tolerant: if the backend drops offline, the firmware will continues executing the active cook locally. If the backend loses connection to the smoker, an alert is sent immediately to your phone.
+The central nervous system of the project. It acts as the bridge between the physical smoker and the mobile application. The backend handles the complex algorithms for stall detection and logs high-resolution temperature history. The system is highly fault-tolerant: if the backend drops offline, the firmware will continue executing the active cook locally. If the backend loses connection to the smoker, an alert is sent immediately to your phone.
 
 ### 3. Firmware (./firmware/README.md)
 The embedded code running on the physical microcontroller (ESP32) that directly interfaces with the smoker's hardware.
