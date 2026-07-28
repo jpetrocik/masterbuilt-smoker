@@ -1,8 +1,8 @@
 # Smart Smoker Controller System
 
-This project replaces the standard control board in an electric smoker, adding Wi-Fi, PID heat control, four built-in meat probes, a companion mobile app, and more. You can remotely monitor and control your cook from anywhere without being tied down to the smoker. The custom PID algorithm maintains an almost perfect internal temperature with minimal fluctuations. A variety of push notifications are supported, eliminating the need to constantly check on your cook throughout the day and night.
+This project replaces the standard control board in an electric smoker, adding Wi-Fi, PID heat control, four built-in meat probes, a companion mobile app, and more. I can remotely monitor and control the cook from anywhere without being tied down to the smoker. The custom PID algorithm maintains an almost perfect internal temperature with minimal fluctuations. A variety of push notifications eliminate the need to constantly check on the cook throughout the day and night.
 
-The primary goal of this project is to give you your weekend back. Whether you're spending the day snowboarding, hitting trails, off-roading, or just hanging out with friends, you shouldn't have to constantly babysit the smoker. The controller continuously monitors the smoker and meat temperature, sending real-time notifications to your phone when probes hit their target temperatures.
+The primary goal of this project is to give me my weekend back. I don't want to constantly babysit the smoker when I rather be spending the day snowboarding, hitting trails, off-roading, or just hanging out with friends. The controller continuously monitors the smoker and meat temperature, sending real-time notifications to my phone when probes hit their target temperatures.
 
 This specific board was designed as a drop-in replacement for Masterbuilt refrigerator-style smokers, but the system can be adapted to work with almost any electric smoker.
 
